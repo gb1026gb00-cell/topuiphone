@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>iPhone Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* iPhone Device Container */
+        #device {
+            width: 375px;
+            height: 812px;
+            background-color: #000;
+            border-radius: 50px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 0 12px #222, 0 0 30px rgba(0,0,0,0.8);
+        }
+
+        /* Dynamic Island / Notch area */
+        .dynamic-island {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 35px;
+            background-color: #000;
+            border-radius: 20px;
+            z-index: 50;
+        }
+
+        /* Shared Screen Styles */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Lock Screen specific */
+        #lock-screen {
+            z-index: 10;
+            color: white;
+            text-align: center;
+            padding-top: 100px;
+        }
+        
+        #lock-screen.swipe-up {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+
+        /* Passcode Screen specific */
+        #passcode-screen {
+            z-index: 20;
+            background: #000000;
+            color: white;
+            opacity: 0;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 120px;
+        }
+
+        #passcode-screen.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .passcode-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 1.5px solid white;
+            margin: 0 12px;
+            transition: background-color 0.1s;
+            background-color: transparent;
+        }
+
+        .passcode-dot.filled {
+            background-color: white;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-15px); }
+            40% { transform: translateX(15px); }
+            60% { transform: translateX(-15px); }
+            80% { transform: translateX(15px); }
+        }
+
+        .shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        .numpad-btn {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            background: #333333;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            font-weight: 400;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .numpad-btn:active {
+            background: #555555;
+        }
+
+        .numpad-letters {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin-top: -5px;
+        }
+
+        /* Home Screen specific */
+        #home-screen {
+            z-index: 5;
+            background-color: #000;
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+            padding: 60px 20px 20px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        #home-screen.active {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+
+        .app-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 14px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            cursor: pointer;
+            transition: transform 0.1s;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .app-icon:active {
+            transform: scale(0.9);
+        }
+
+        .app-label {
+            font-size: 11px;
+            color: white;
+            margin-top: 5px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        /* Dock */
+        .dock {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        /* App View (Opened App) */
+        #app-view {
+            z-index: 30;
+            background-color: #1c1c1e;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.8) translateY(20%);
+            border-radius: 40px;
+        }
+
+        #app-view.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1) translateY(0);
+            border-radius: 0;
+        }
+
+        /* Custom Phone App (Galaxy Style) */
+        #phone-app {
+            z-index: 35;
+            background-color: #111111;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.8) translateY(20%);
+            border-radius: 40px;
+            overflow: hidden;
+            color: white;
+        }
+
+        #phone-app.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1) translateY(0);
+            border-radius: 0;
+        }
+
+        /* Postype App */
+        #postype-app {
+            z-index: 35;
+            background-color: #000000;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.8) translateY(20%);
+            border-radius: 40px;
+            overflow: hidden;
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #postype-app.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1) translateY(0);
+            border-radius: 0;
+        }
+
+        /* Postype Detail Screen */
+        #postype-detail-screen {
+            z-index: 45;
+            background-color: #000000;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(100%);
+            display: flex;
+            flex-direction: column;
+            color: white;
+        }
+
+        #postype-detail-screen.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(0);
+        }
+
+        /* Postype Detail Screen 2 */
+        #postype-detail-screen-2 {
+            z-index: 45;
+            background-color: #000000;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(100%);
+            display: flex;
+            flex-direction: column;
+            color: white;
+        }
+
+        #postype-detail-screen-2.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(0);
+        }
+
+        .phone-tab-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 0;
+            border-radius: 20px;
+            color: #888;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .phone-tab-btn.active {
+            background-color: #3b3b3b;
+            color: white;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Home Indicator (Bottom Bar) */
+        .home-indicator-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 35px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            cursor: pointer;
+        }
+
+        .home-indicator {
+            width: 130px;
+            height: 5px;
+            background-color: white;
+            border-radius: 10px;
+        }
+
+        /* Utilities */
+        .glass-btn {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="device">
+        <!-- Dynamic Island -->
+        <div class="dynamic-island"></div>
+
+        <!-- ================= LOCK SCREEN ================= -->
+        <div id="lock-screen" class="screen">
+            <!-- Top Status Bar Mock -->
+            <div class="absolute top-4 w-full px-6 text-white text-xs font-semibold flex items-center justify-between z-50">
+                <span class="text-[13px] font-medium">KT</span>
+                <div class="flex items-center space-x-1.5">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11.2a10 10 0 0116 0l-8 10-8-10z"/></svg>
+                    <span class="font-bold">5G</span>
+                    <div class="flex items-center border border-white/50 bg-white/20 rounded-[4px] px-1 h-[14px]">
+                        <span class="text-[10px] leading-none mt-[1px]">89</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date and Time -->
+            <div class="mt-14 flex flex-col items-center">
+                <div id="ls-date" class="text-lg font-medium opacity-100 mb-0" style="color: white;">10월 26일 월요일</div>
+                <div id="ls-time" class="text-[80px] leading-none font-bold tracking-tight mb-4" style="font-family: -apple-system, sans-serif; color: white;">4:24</div>
+            </div>
+
+            <!-- Bottom Section (Flashlight, Camera, Swipe) -->
+            <div class="absolute bottom-12 w-full px-8 flex justify-between items-end">
+                <div class="glass-btn bg-[#2c2c2e]/60 backdrop-blur-md">
+                    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"/></svg>
+                </div>
+                
+                <div class="flex flex-col items-center mb-[-10px] cursor-pointer" id="swipe-area">
+                    <span class="text-[13px] font-medium opacity-80 mb-2">위로 쓸어올려서 열기</span>
+                </div>
+
+                <div class="glass-btn bg-[#2c2c2e]/60 backdrop-blur-md">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </div>
+            </div>
+
+            <div class="home-indicator-container" id="ls-home-indicator">
+                <div class="home-indicator"></div>
+            </div>
+        </div>
+
+        <!-- ================= PASSCODE SCREEN ================= -->
+        <div id="passcode-screen" class="screen">
+            <div class="mb-4">
+                <svg class="w-4 h-4 text-white mx-auto" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+            </div>
+            <h2 class="text-[17px] font-medium mb-10">암호 입력</h2>
+            
+            <div class="flex justify-center mb-16" id="passcode-dots">
+                <div class="passcode-dot"></div>
+                <div class="passcode-dot"></div>
+                <div class="passcode-dot"></div>
+                <div class="passcode-dot"></div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-x-6 gap-y-4 px-10">
+                <div class="numpad-btn" onclick="pressKey('1')">1<span class="numpad-letters">&nbsp;</span></div>
+                <div class="numpad-btn" onclick="pressKey('2')">2<span class="numpad-letters">A B C</span></div>
+                <div class="numpad-btn" onclick="pressKey('3')">3<span class="numpad-letters">D E F</span></div>
+                <div class="numpad-btn" onclick="pressKey('4')">4<span class="numpad-letters">G H I</span></div>
+                <div class="numpad-btn" onclick="pressKey('5')">5<span class="numpad-letters">J K L</span></div>
+                <div class="numpad-btn" onclick="pressKey('6')">6<span class="numpad-letters">M N O</span></div>
+                <div class="numpad-btn" onclick="pressKey('7')">7<span class="numpad-letters">P Q R S</span></div>
+                <div class="numpad-btn" onclick="pressKey('8')">8<span class="numpad-letters">T U V</span></div>
+                <div class="numpad-btn" onclick="pressKey('9')">9<span class="numpad-letters">W X Y Z</span></div>
+                <div></div>
+                <div class="numpad-btn" onclick="pressKey('0')">0<span class="numpad-letters">&nbsp;</span></div>
+                <div></div>
+            </div>
+            
+            <div class="w-full flex justify-between px-10 text-[15px] mt-10 font-medium tracking-wide">
+                <div class="cursor-pointer active:opacity-50">긴급상황</div>
+                <div class="cursor-pointer active:opacity-50" onclick="cancelPasscode()">취소</div>
+            </div>
+        </div>
+
+        <!-- ================= HOME SCREEN ================= -->
+        <div id="home-screen" class="screen">
+            <!-- App Grid (4x2) -->
+            <div class="grid grid-cols-4 gap-y-6 gap-x-4 flex-1 pt-6 px-1">
+                <!-- 1. FaceTime -->
+                <div class="flex flex-col items-center" onclick="openApp('FaceTime', '#1c1c1e')">
+                    <div class="app-icon bg-[#34C759]">
+                        <svg viewBox="0 0 24 24" class="w-9 h-9 text-white" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                    </div>
+                    <span class="app-label">FaceTime</span>
+                </div>
+                <!-- 2. Calendar -->
+                <div class="flex flex-col items-center" onclick="openApp('캘린더', '#1c1c1e')">
+                    <div class="app-icon bg-white flex flex-col justify-center items-center">
+                        <span class="text-[9px] text-red-500 font-bold mt-1">월요일</span>
+                        <span class="text-[30px] text-black font-light leading-none -mt-1 tracking-tighter">26</span>
+                    </div>
+                    <span class="app-label">캘린더</span>
+                </div>
+                <!-- 3. Photos -->
+                <div class="flex flex-col items-center" onclick="openApp('사진', '#1c1c1e')">
+                    <div class="app-icon bg-white flex justify-center items-center">
+                        <svg viewBox="0 0 100 100" class="w-[42px] h-[42px]">
+                            <g style="mix-blend-mode: multiply;">
+                                <ellipse cx="50" cy="28" rx="14" ry="22" fill="#FF2D55" transform="rotate(0 50 50)" opacity="0.9"/>
+                                <ellipse cx="50" cy="28" rx="14" ry="22" fill="#FF9500" transform="rotate(45 50 50)" opacity="0.9"/>
+                                <ellipse cx="50" cy="28" rx="14" ry="22" fill="#FFCC00" transform="rotate(90 50 50)" opacity="0.9"/>
+                                <ellipse cx="50" cy="28" rx="14" ry="22" fill="#4CD964" transform="rotate(135 50 50)" opacity="0.9"/>
+                                <ellipse cx="50" cy="28" rx="14" ry="22" fill="#5AC8FA" transform="rotate(180 50 50)" opacity="0.9"/>
+                                <ellipse cx="50" cy="28" rx="14" ry="22" fill="#007AFF" transform="rotate(225 50 50)" opacity="0.9"/>
+                                <ellipse cx="50" cy="28" rx="14" ry="22" fill="#5856D6" transform="rotate(270 50 50)" opacity="0.9"/>
+                                <ellipse cx="50" cy="28" rx="14" ry="22" fill="#FF2D55" transform="rotate(315 50 50)" opacity="0.9"/>
+                            </g>
+                        </svg>
+                    </div>
+                    <span class="app-label">사진</span>
+                </div>
+                <!-- 4. Mail -->
+                <div class="flex flex-col items-center" onclick="openApp('Mail', '#1c1c1e')">
+                    <div class="app-icon bg-gradient-to-b from-[#5AC8FA] to-[#007AFF] flex justify-center items-center">
+                        <svg viewBox="0 0 24 24" class="w-9 h-9 text-white" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    </div>
+                    <span class="app-label">Mail</span>
+                </div>
+                
+                <!-- 5. Clock -->
+                <div class="flex flex-col items-center" onclick="openApp('시계', '#1c1c1e')">
+                    <div class="app-icon bg-black flex justify-center items-center border border-gray-800">
+                       <div class="w-[54px] h-[54px] bg-white rounded-full relative shadow-inner">
+                           <span class="absolute top-[2px] left-1/2 -translate-x-1/2 text-[8px] font-bold text-black">12</span>
+                           <span class="absolute bottom-[2px] left-1/2 -translate-x-1/2 text-[8px] font-bold text-black">6</span>
+                           <span class="absolute left-[3px] top-1/2 -translate-y-1/2 text-[8px] font-bold text-black">9</span>
+                           <span class="absolute right-[3px] top-1/2 -translate-y-1/2 text-[8px] font-bold text-black">3</span>
+                           <!-- Hour Hand -->
+                           <div class="absolute w-[2.5px] h-[14px] bg-black top-[13px] left-1/2 -translate-x-1/2 rounded-full origin-bottom" style="transform: translateX(-50%) rotate(45deg);"></div>
+                           <!-- Minute Hand -->
+                           <div class="absolute w-[2px] h-[20px] bg-black top-[7px] left-1/2 -translate-x-1/2 rounded-full origin-bottom" style="transform: translateX(-50%) rotate(270deg);"></div>
+                           <!-- Second Hand -->
+                           <div class="absolute w-[1px] h-[24px] bg-orange-500 top-[3px] left-1/2 -translate-x-1/2 rounded-full origin-bottom" style="transform: translateX(-50%) rotate(15deg);"></div>
+                           <div class="absolute w-1.5 h-1.5 bg-black rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+                           <div class="absolute w-[3px] h-[3px] bg-orange-500 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+                       </div>
+                    </div>
+                    <span class="app-label">시계</span>
+                </div>
+                <!-- 6. Notes -->
+                <div class="flex flex-col items-center" onclick="openApp('메모', '#1c1c1e')">
+                    <div class="app-icon bg-white flex flex-col overflow-hidden relative">
+                        <div class="h-[18px] w-full bg-[#FFCC00]"></div>
+                        <div class="flex-1 w-full px-2 py-[5px] flex flex-col gap-[5px]">
+                            <div class="flex items-center gap-[4px]"><div class="w-1 h-1 rounded-full bg-gray-400"></div><div class="h-[1.5px] w-full bg-gray-300"></div></div>
+                            <div class="flex items-center gap-[4px]"><div class="w-1 h-1 rounded-full bg-gray-400"></div><div class="h-[1.5px] w-full bg-gray-300"></div></div>
+                            <div class="flex items-center gap-[4px]"><div class="w-1 h-1 rounded-full bg-gray-400"></div><div class="h-[1.5px] w-full bg-gray-300"></div></div>
+                        </div>
+                    </div>
+                    <span class="app-label">메모</span>
+                </div>
+                <!-- 7. App Store -->
+                <div class="flex flex-col items-center" onclick="openApp('App Store', '#1c1c1e')">
+                    <div class="app-icon bg-[#007AFF] flex justify-center items-center">
+                        <svg viewBox="0 0 100 100" class="w-[42px] h-[42px] text-white" stroke="currentColor" stroke-width="8" stroke-linecap="round" fill="none">
+                            <path d="M50 15 L20 75" />
+                            <path d="M50 15 L80 75" />
+                            <path d="M30 60 L70 60" />
+                        </svg>
+                    </div>
+                    <span class="app-label">App Store</span>
+                </div>
+                <!-- 8. Settings -->
+                <div class="flex flex-col items-center" onclick="openApp('설정', '#1c1c1e')">
+                    <div class="app-icon bg-gradient-to-b from-[#A1A1A6] to-[#8E8E93] flex justify-center items-center">
+                        <svg viewBox="0 0 24 24" class="w-10 h-10 text-[#2C2C2E]" fill="currentColor">
+                            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.06-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.488.488 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.06.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .43-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.49-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                        </svg>
+                    </div>
+                    <span class="app-label">설정</span>
+                </div>
+                <!-- 9. Postype -->
+                <div class="flex flex-col items-center" onclick="openApp('포스타입', '#1c1c1e')">
+                    <div class="app-icon bg-[#0a0a0a] border border-[#333] flex justify-center items-center">
+                        <svg viewBox="0 0 100 100" class="w-[42px] h-[42px] text-[#f2f2f2]" fill="currentColor">
+                            <rect x="28" y="24" width="11" height="52" />
+                            <rect x="46" y="24" width="11" height="52" />
+                            <rect x="28" y="24" width="34" height="11" />
+                            <path d="M 50 24 H 64 C 77 24, 84 31, 84 42 C 84 53, 77 60, 64 60 H 46 V 49 H 64 C 70 49, 72 46, 72 42 C 72 38, 70 35, 64 35 H 46 Z" />
+                        </svg>
+                    </div>
+                    <span class="app-label">포스타입</span>
+                </div>
+            </div>
+
+            <!-- Dock -->
+            <div class="dock">
+                <!-- Phone -->
+                <div class="app-icon bg-[#34C759]" onclick="openApp('Phone', '#1c1c1e')">
+                    <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                </div>
+                <!-- Safari -->
+                <div class="app-icon bg-white" onclick="openApp('Safari', '#1c1c1e')">
+                    <svg class="w-9 h-9 text-[#007AFF]" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" fill="currentColor" />
+                        <path class="safari-compass" d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16z" />
+                        <path d="M14.5 9.5l-6 2.5 2.5 6 6-2.5-2.5-6z" fill="white" />
+                        <path d="M14.5 9.5l-2.5 2.5-3.5 1 1-3.5z" fill="#FF3B30" />
+                        <circle cx="12" cy="12" r="1.5" fill="white" />
+                    </svg>
+                </div>
+                <!-- Messages -->
+                <div class="app-icon bg-[#34C759]" onclick="openApp('Messages', '#1c1c1e')">
+                    <svg class="w-9 h-9 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
+                    </svg>
+                </div>
+                <!-- Music -->
+                <div class="app-icon bg-white" onclick="openApp('Music', '#1c1c1e')">
+                    <svg class="w-10 h-10" viewBox="0 0 24 24">
+                        <defs>
+                            <linearGradient id="music-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#FF2D55" />
+                                <stop offset="100%" stop-color="#5856D6" />
+                            </linearGradient>
+                        </defs>
+                        <path fill="url(#music-gradient)" d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= APP VIEW (GENERIC) ================= -->
+        <div id="app-view" class="screen flex flex-col">
+            <div class="flex-1 flex flex-col justify-center items-center" id="app-content">
+                <div class="text-6xl mb-4" id="app-icon-large">📱</div>
+                <h1 class="text-3xl font-bold text-white" id="app-title">App Name</h1>
+                <p class="text-gray-400 mt-2">홈 바를 눌러 닫기</p>
+            </div>
+            
+            <div class="home-indicator-container" onclick="closeApp()">
+                <div class="home-indicator" style="background-color: white; opacity: 0.5;"></div>
+            </div>
+        </div>
+
+        <!-- ================= GALAXY PHONE APP VIEW ================= -->
+        <div id="phone-app" class="screen flex flex-col">
+            <!-- Tab Content: Keypad -->
+            <div id="tab-content-keypad" class="flex-1 flex flex-col pb-24">
+                <div class="flex-1 flex items-end justify-center pb-6">
+                    <div id="keypad-input" class="text-[32px] font-normal tracking-wider min-h-[40px]"></div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-y-2 gap-x-8 px-8 mb-6 text-white">
+                    <div class="flex flex-col items-center justify-center h-[70px] active:bg-white/10 rounded-full cursor-pointer" onclick="typeNumber('1')">
+                        <span class="text-[32px] font-light">1</span>
+                        <span class="text-[9px] text-gray-500 font-bold tracking-widest mt-[-4px] invisible">.</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center h-[70px] active:bg-white/10 rounded-full cursor-pointer" onclick="typeNumber('2')">
+                        <span class="text-[32px] font-light">2</span>
+                        <span class="text-[9px] text-gray-500 font-bold tracking-widest mt-[-4px]">ABC</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center h-[70px] active:bg-white/10 rounded-full cursor-pointer" onclick="typeNumber('3')">
+                        <span class="text-[32px] font-light">3</span>
+                        <span class="text-[9px] text-gray-500 font-bold tracking-widest mt-[-4px]">DEF</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center h-[70px] active:bg-white/10 rounded-full cursor-pointer" onclick="typeNumber('4')">
+                        <span class="text-[32px] font-light">4</span>
+                        <span class="text-[9px] text-gray-500 font-bold tracking-widest mt-[-4px]">ㄱㅋ GHI</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center h-[70px] active:bg-white/10 rounded-full cursor-pointer" onclick="typeNumber('5')">
+                        <span class="text-[32px] font-light">5</span>
+                        <span class="text-[9px] text-gray-500 font-bold tracking-widest mt-[-4px]">ㄴㄹ JKL</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center h-[70px] active:bg-white/10 rounded-full cursor-pointer" onclick="typeNumber('6')">
+                        <span class="text-[32px] font-light">6</span>
+                        <span class="text-[9px] text-gray-500 font-bold tracking-widest mt-[-4px]">ㄷㅌ MNO</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center h-[70px] active:bg-white/10 rounded-full cursor-pointer" onclick="typeNumber('7')">
+                        <span class="text-[32px] font-light">7</span>
+                        <span class="text-[9px] text-gray-500 font-bold tracking-widest mt-[-4px]">ㅂㅍ PQRS</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center h-[70px] active:bg-white/10 rounded-full cursor-pointer" onclick="typeNumber('8')">
+                        <span class="text-[32px] font-light">8</span>
+                        <span class="text-[9px] text-gray-500 font-bold tracking-widest mt-[-4px]">ㅅㅎ TUV</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center h-[70px] active:bg-white/10 rounded-full cursor-pointer" onclick="typeNumber('9')">
+                        <span class="text-[32px] font-light">9</span>
+                        <span class="text-[9px] text-gray-500 font-bold tracking-widest mt-[-4px]">ㅈㅊ WXYZ</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center h-[70px] active:bg-white/10 rounded-full cursor-pointer" onclick="typeNumber('*')">
+                        <span class="text-[40px] font-light mt-3">*</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center h-[70px] active:bg-white/10 rounded-full cursor-pointer" onclick="typeNumber('0')">
+                        <span class="text-[32px] font-light">0</span>
+                        <span class="text-[9px] text-gray-500 font-bold tracking-widest mt-[-4px]">ㅇㅁ +</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center h-[70px] active:bg-white/10 rounded-full cursor-pointer" onclick="typeNumber('#')">
+                        <span class="text-[32px] font-light mt-1">#</span>
+                    </div>
+                </div>
+
+                <div class="flex justify-center mt-4 relative">
+                    <!-- Backspace Icon (appears when typing) -->
+                    <div id="keypad-backspace" class="absolute left-[50px] top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer hidden active:text-white" onclick="deleteNumber()">
+                        <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.707 4.879A3 3 0 018.828 4H15a3 3 0 013 3v6a3 3 0 01-3 3H8.828a3 3 0 01-2.121-.879l-4.415-4.414a1 1 0 010-1.414l4.414-4.414zm4 2.414a1 1 0 00-1.414 1.414L10.586 10l-1.293 1.293a1 1 0 101.414 1.414L12 11.414l1.293 1.293a1 1 0 001.414-1.414L13.414 10l1.293-1.293a1 1 0 00-1.414-1.414L12 8.586l-1.293-1.293z" clip-rule="evenodd"/></svg>
+                    </div>
+                    
+                    <div class="w-[70px] h-[70px] bg-[#23c55e] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform cursor-pointer">
+                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Recent -->
+            <div id="tab-content-recent" class="hidden flex-1 flex-col px-4 pt-2 overflow-y-auto pb-24 no-scrollbar">
+                <div class="flex justify-between items-center mb-6 px-2">
+                    <h2 class="text-xl font-bold">전화</h2>
+                    <div class="flex gap-4 text-gray-400">
+                        <svg class="w-5 h-5 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                        <svg class="w-5 h-5 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        <svg class="w-5 h-5 cursor-pointer" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path></svg>
+                    </div>
+                </div>
+                
+                <div class="text-[11px] text-gray-400 mb-2 pl-2">어제</div>
+                <div class="bg-[#1c1c1e] rounded-3xl p-4 mb-4">
+                    <div class="flex items-center justify-between border-b border-[#333] pb-3 mb-3">
+                        <div class="flex items-center gap-3">
+                            <span class="text-gray-400 text-lg">↙</span>
+                            <span class="text-[16px] truncate">산이 ⛰️</span>
+                        </div>
+                        <div class="text-right flex flex-col items-end">
+                            <span class="text-[11px] text-gray-400">18:42</span>
+                            <div class="flex gap-1 items-center mt-1">
+                                <span class="text-[9px] text-gray-500 font-bold">HD</span>
+                                <svg class="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-2a5 5 0 01-10 0H3a7.001 7.001 0 006 6.93V17H6v2h8v-2h-3v-2.07z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-gray-400 text-lg">↙</span>
+                            <span class="text-[16px] truncate">산이 ⛰️</span>
+                        </div>
+                        <div class="text-right flex flex-col items-end">
+                            <span class="text-[11px] text-gray-400">13:56</span>
+                            <div class="flex gap-1 items-center mt-1">
+                                <span class="text-[9px] text-gray-500 font-bold">HD</span>
+                                <svg class="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-2a5 5 0 01-10 0H3a7.001 7.001 0 006 6.93V17H6v2h8v-2h-3v-2.07z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-[11px] text-gray-400 mb-2 pl-2">10월 24일 토요일</div>
+                <div class="bg-[#1c1c1e] rounded-3xl p-4 mb-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-gray-400 text-lg">↙</span>
+                            <span class="text-[16px] truncate">산이 ⛰️</span>
+                        </div>
+                        <div class="text-right flex flex-col items-end">
+                            <span class="text-[11px] text-gray-400">16:58</span>
+                            <div class="flex gap-1 items-center mt-1">
+                                <span class="text-[9px] text-gray-500 font-bold">HD</span>
+                                <svg class="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-2a5 5 0 01-10 0H3a7.001 7.001 0 006 6.93V17H6v2h8v-2h-3v-2.07z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Contacts -->
+            <div id="tab-content-contacts" class="hidden flex-1 flex-col px-4 pt-2 overflow-y-auto pb-24 no-scrollbar">
+                 <div class="flex justify-between items-center px-2">
+                    <div class="w-10"></div> <!-- Spacer for centering -->
+                    <div class="flex flex-col items-center">
+                        <h2 class="text-xl font-bold">전화</h2>
+                        <p class="text-[11px] text-gray-400 mt-1">전화번호가 저장된 연락처 1개</p>
+                    </div>
+                    <div class="flex gap-4 text-gray-400">
+                        <svg class="w-5 h-5 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        <svg class="w-5 h-5 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        <svg class="w-5 h-5 cursor-pointer" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path></svg>
+                    </div>
+                </div>
+
+                <div class="bg-[#1c1c1e] rounded-full p-3 mb-4 mt-6 flex items-center gap-3 cursor-pointer">
+                    <div class="w-9 h-9 rounded-full bg-orange-400 flex items-center justify-center text-white text-lg">★</div>
+                    <span class="text-[15px] font-medium">즐겨찾는 연락처 추가</span>
+                </div>
+                
+                <div class="text-[11px] text-gray-400 mb-2 pl-2 mt-2">내 프로필</div>
+                <div class="bg-[#1c1c1e] rounded-3xl mb-6 overflow-hidden">
+                     <div class="flex items-center gap-3 p-3 cursor-pointer hover:bg-white/5">
+                         <div class="w-9 h-9 rounded-full bg-purple-500 flex items-center justify-center text-white text-sm font-bold">우</div>
+                         <span class="text-[16px]">정우영</span>
+                     </div>
+                </div>
+
+                <div class="text-[11px] text-gray-400 mb-2 pl-2">ㅅ</div>
+                <div class="bg-[#1c1c1e] rounded-[24px] overflow-hidden flex flex-col mb-4">
+                     <div class="flex items-center gap-3 p-3 cursor-pointer hover:bg-white/5">
+                         <div class="w-9 h-9 rounded-full bg-pink-500 flex items-center justify-center text-white text-sm font-bold">산</div>
+                         <span class="text-[16px]">산이 ⛰️</span>
+                     </div>
+                </div>
+            </div>
+
+            <!-- Pill Navigation (Bottom) -->
+            <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 w-[240px] bg-[#222222] rounded-full flex p-1.5 z-50 shadow-2xl">
+                <div class="phone-tab-btn active" id="tab-btn-keypad" onclick="switchPhoneTab('keypad')">
+                    <svg class="w-5 h-5 mb-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm3 10h4v-2H8v2zm0-4h4V8H8v2zM5 8h1v2H5V8zm1 4H5v2h1v-2zm8-4h1v2h-1V8zm1 4h-1v2h1v-2z" clip-rule="evenodd"/></svg>
+                    <span class="text-[10px] font-bold">키패드</span>
+                </div>
+                <div class="phone-tab-btn" id="tab-btn-recent" onclick="switchPhoneTab('recent')">
+                    <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"></path></svg>
+                    <span class="text-[10px] font-bold">최근기록</span>
+                </div>
+                <div class="phone-tab-btn" id="tab-btn-contacts" onclick="switchPhoneTab('contacts')">
+                    <svg class="w-5 h-5 mb-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+                    <span class="text-[10px] font-bold">연락처</span>
+                </div>
+            </div>
+            
+            <div class="home-indicator-container absolute bottom-0 z-[60]" onclick="closeApp()">
+                <div class="home-indicator" style="background-color: white; opacity: 0.5;"></div>
+            </div>
+        </div>
+
+        <!-- ================= POSTYPE APP VIEW ================= -->
+        <div id="postype-app" class="screen">
+            
+            <!-- Top Navigation Bar -->
+            <div class="flex items-center justify-between px-4 pt-12 pb-3 bg-black">
+                <div class="flex items-center gap-3">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    <span class="text-xl font-bold tracking-widest font-sans">POSTYPE</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                    <div class="relative">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex px-4 border-b border-[#222]">
+                <div class="pb-2 mr-5 border-b-2 border-white text-[15px] font-bold">발견</div>
+                <div class="pb-2 text-gray-400 text-[15px] relative">
+                    구독·참여
+                    <div class="absolute top-0 -right-2 w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                </div>
+            </div>
+
+            <!-- Scrollable Feed -->
+            <div class="flex-1 overflow-y-auto no-scrollbar pb-24 bg-black">
+                
+                <!-- Post Item 1 -->
+                <div class="p-4 border-b border-[#222] cursor-pointer active:bg-[#111]" onclick="openPostDetail()">
+                    <!-- Profile Header -->
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex gap-2.5 items-center">
+                            <div class="w-10 h-10 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="font-medium text-[15px]">낫웡러</span>
+                                <span class="text-[12px] text-gray-400">2026.10.24•낫웡</span>
+                            </div>
+                        </div>
+                        <svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"/></svg>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div class="mb-3">
+                        <h3 class="font-bold text-[17px] mb-1">비밀의 궤도</h3>
+                        <p class="text-gray-300 text-[15px] mb-2">Ep.1</p>
+                        <p class="text-gray-400 text-[14px] leading-relaxed">
+                            *00000자* *낫웡* 지하 합주실 계단을 따라 내려갈 때부터 텁텁하고 축축한 공기가 피부에 짓밀려 왔다. 축제를 정확히 한 달 앞둔 시점이었다. 장마철이 갓 지나간 동아리방 구석은 곰팡이 냄새와 오래된 앰프의 먼지 냄새, 그리고 온종일 단내 나게 쏟아부은 땀 냄새로 눅눅하게 굳어 있었다. 벽면에 아무렇게나 붙은 방음용 계란판 스폰지는 습기를 머금어 둔중하게 부풀어 있었고, 구석에서 털털거리며 돌아가는 선풍기는 시원한 바람 대신 매캐한 기운만 헐떡이며 뿜어냈다.
+                        </p>
+                    </div>
+                    
+                    <!-- Tags -->
+                    <div class="flex gap-1.5 mb-3">
+                        <span style="background:#333; padding:2px 8px; border-radius:12px; font-size:12px;" class="text-gray-300 font-medium">낫웡</span>
+                    </div>
+                    
+                    <!-- Stats -->
+                    <div class="text-[12px] text-gray-400 mb-4">
+                        조회 5.6천
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="flex justify-between items-center text-gray-300">
+                        <div class="flex gap-4">
+                            <div class="flex items-center gap-1.5"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg> <span class="text-[13px]">56</span></div>
+                            <div class="flex items-center gap-1.5"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg> <span class="text-[13px]">30</span></div>
+                            <div class="flex items-center gap-1.5"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> <span class="text-[13px]">36</span></div>
+                        </div>
+                        <div class="flex gap-3">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        </div>
+                    </div>
+
+                    <!-- Comment Preview -->
+                    <div class="mt-4 bg-[#181818] rounded-xl p-3 flex gap-3 items-center">
+                        <div class="w-8 h-8 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-white text-[13px] font-medium leading-snug">우산즈러버</span>
+                            <span class="text-gray-400 text-[13px] leading-snug">너무 재밌어서 울 것 같아요 ㅠㅠ</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Post Item 2 -->
+                <div class="p-4 border-b border-[#222] cursor-pointer active:bg-[#111]" onclick="openPostDetail2()">
+                    <!-- Profile Header -->
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex gap-2.5 items-center">
+                            <div class="w-10 h-10 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="font-medium text-[15px]">낫웡러</span>
+                                <span class="text-[12px] text-gray-400">2026.10.25•낫웡</span>
+                            </div>
+                        </div>
+                        <svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"/></svg>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div class="mb-3">
+                        <h3 class="font-bold text-[17px] mb-1">비밀의 궤도</h3>
+                        <p class="text-gray-300 text-[15px] mb-2">Ep.2</p>
+                        <p class="text-gray-400 text-[14px] leading-relaxed">
+                            *00000자* *낫웡* 새벽 1시가 훌쩍 넘어선 시각, 적막한 골목길을 지나 도달한 곳은 학교 근처 산의 자취방이었다. 비밀번호를 누르고 들어가자 도어락이 작게 띠리릭 소리를 내며 열렸다. 현관에 들어서자마자 뿜어져 나오는 온기는 아까 합주실에서 느꼈던 눅눅한 습기와는 전혀 다른 종류의 것이었다. 오래된 섬유유연제 향과 서늘한 집 안 공기, 그리고 최산이라는 사람 그 자체에서 뿜어져 나오는 온기가 오묘하게 엉켜 현관 입구부터 우영의 피부에 번져 왔다.
+                        </p>
+                    </div>
+
+                    <!-- Tags -->
+                    <div class="flex gap-1.5 mb-3">
+                        <span style="background:#333; padding:2px 8px; border-radius:12px; font-size:12px;" class="text-gray-300 font-medium">낫웡</span>
+                    </div>
+                    
+                    <!-- Stats -->
+                    <div class="text-[12px] text-gray-400 mb-4">
+                        조회 5.5천
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="flex justify-between items-center text-gray-300">
+                        <div class="flex gap-4">
+                            <div class="flex items-center gap-1.5"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg> <span class="text-[13px]">55</span></div>
+                            <div class="flex items-center gap-1.5"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg> <span class="text-[13px]">25</span></div>
+                            <div class="flex items-center gap-1.5"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> <span class="text-[13px]">34</span></div>
+                        </div>
+                        <div class="flex gap-3">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        </div>
+                    </div>
+
+                    <!-- Comment Preview -->
+                    <div class="mt-4 bg-[#181818] rounded-xl p-3 flex gap-3 items-center">
+                        <div class="w-8 h-8 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-white text-[13px] font-medium leading-snug">낫웡은진짜임</span>
+                            <span class="text-gray-400 text-[13px] leading-snug">작가님은 진짜 유명한 낫웡 맛집임.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Navigation -->
+            <div class="absolute bottom-0 w-full bg-black border-t border-[#222] h-[80px] flex justify-between px-3 pt-2 pb-6 z-50">
+                <div class="flex flex-col items-center flex-1 text-gray-500 gap-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span class="text-[10px]">캐릭터톡</span>
+                </div>
+                <div class="flex flex-col items-center flex-1 text-white gap-1">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
+                    <span class="text-[10px] font-bold">홈</span>
+                </div>
+                <div class="flex flex-col items-center flex-1 text-gray-500 gap-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    <span class="text-[10px]">리퀘스트</span>
+                </div>
+                <div class="flex flex-col items-center flex-1 text-gray-500 gap-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <span class="text-[10px]">검색</span>
+                </div>
+                <div class="flex flex-col items-center flex-1 text-gray-500 gap-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                    <span class="text-[10px]">보관함</span>
+                </div>
+                <div class="flex flex-col items-center flex-1 text-[#ffeb3b] gap-1">
+                    <div class="w-6 h-6 rounded-full bg-[#ffeb3b] flex items-center justify-center">
+                        <svg class="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    <span class="text-[10px]">마이메뉴</span>
+                </div>
+            </div>
+
+            <!-- Home Indicator (Overlay) -->
+            <div class="home-indicator-container absolute bottom-0 z-[60]" onclick="closeApp()">
+                <div class="home-indicator" style="background-color: white; opacity: 0.8;"></div>
+            </div>
+        </div>
+
+        <!-- ================= POSTYPE DETAIL SCREEN ================= -->
+        <div id="postype-detail-screen" class="screen">
+            <!-- Top Navigation Bar -->
+            <div class="flex items-center justify-between px-4 pt-12 pb-3 bg-black border-b border-[#111]">
+                <div class="cursor-pointer p-1" onclick="closePostDetail()">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </div>
+                <div class="flex items-center gap-4 text-white">
+                    <!-- Settings -->
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <!-- Share -->
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    <!-- More -->
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"/></svg>
+                </div>
+            </div>
+
+            <!-- Detail Scrollable Content -->
+            <div class="flex-1 overflow-y-auto no-scrollbar bg-black px-4 pt-6 pb-40">
+                <!-- Title & Profile -->
+                <h1 class="text-2xl font-bold mb-2">비밀의 궤도</h1>
+                <h2 class="text-[15px] text-gray-400 mb-5">Ep.1</h2>
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-medium text-[14px]">낫웡러</span>
+                        <span class="text-[12px] text-gray-500">2026. 10. 24.</span>
+                    </div>
+                </div>
+
+                <div class="h-[1px] w-full bg-[#222] mb-6"></div>
+
+                <!-- Body Content -->
+                <div class="text-gray-300 text-[15px] leading-relaxed mb-12 min-h-[150px]">
+                    <p class="mb-4">*00000자*<br>*낫웡*</p>
+                    <p class="mb-4">지하 합주실 계단을 따라 내려갈 때부터 텁텁하고 축축한 공기가 피부에 짓밀려 왔다. 축제를 정확히 한 달 앞둔 시점이었다. 장마철이 갓 지나간 동아리방 구석은 곰팡이 냄새와 오래된 앰프의 먼지 냄새, 그리고 온종일 단내 나게 쏟아부은 땀 냄새로 눅눅하게 굳어 있었다. 벽면에 아무렇게나 붙은 방음용 계란판 스폰지는 습기를 머금어 둔중하게 부풀어 있었고, 구석에서 털털거리며 돌아가는 선풍기는 시원한 바람 대신 매캐한 기운만 헐떡이며 뿜어냈다.</p>
+                    <p class="mb-4">"처음부터 다시 간다. 박자 느려지지 마."</p>
+                    <p class="mb-4">스탠드 마이크 앞에 선 산의 목소리가 합주실의 좁은 정적을 갈랐다. 땀에 젖어 이마에 엉겨 붙은 검은 머리칼 사이로 묵직한 눈빛이 번뜩였다. 카운트다운 소리와 함께 드럼 스틱이 세 번 짝, 짝, 짝 부딪히자마자 조용한 합주실은 순식간에 터져 나가는 소리의 소용돌이 속으로 짓눌렸다.</p>
+                    <p class="mb-4">스탠드 마이크 헤드에 입술이 거의 닿을 듯 바짝 다가붙은 산의 성량은 압도적이었다. 좁은 지하 방의 공기를 찢고 울리는 산의 음성은 단번에 벽면을 타고 올라가 부원들의 귓가를 강렬하게 울렸다. 내지르는 고음 마다 굵은 목선 위로 핏대가 선명하게 도드라졌다. 마이크를 쥔 산의 손가락 마디마디가 하얗게 질려있었고, 젖은 셔츠 너머로 움직이는 단단한 어깨 곡선에는 숨길 수 없는 열기가 맺혀 있었다.</p>
+                    <p class="mb-4">부원들 모두가 그 선명하고 뜨거운 존재감에 짓눌려 숨조차 제대로 쉬지 못한 채 제 악기를 쥐고 템포를 따라붙기 바빴다. 무대 중앙에서 조명을 받지 않아도, 켜켜이 쌓인 먼지 속에서 마이크 하나만을 쥐고 있는 최산은 늘 동아리 전체의 중심이자 절대적인 궤도였다.</p>
+                    <p class="mb-4">최산의 대각선 방향, 커스텀 일렉 기타 앰프 앞에 서 있는 우영의 손끝도 분주하게 움직였다. 이펙터 페달을 짓밟으며 앰프를 통해 날카롭고 화려한 리프 연주를 내질렀지만, 우영의 시선은 연주 내내 단 한 번도 기타 지판만을 향하지 못했다.</p>
+                    <p class="mb-4">날이 선 피크가 쇠줄을 긁어내리는 찰나에도, 우영의 두 눈은 마이크를 쥔 산의 긴 손가락, 턱끝을 타고 내려가 쇄골 밑으로 떨어지는 땀방울, 그리고 노랫말을 뱉어낼 때마다 매끄럽게 움직이는 목선에 닻을 내리고 있었다.</p>
+                    <p class="mb-4">가장 가까운 거리에서 같은 곡을 연주하고 있으면서도 우영의 마음은 실시간으로 바싹 말라붙어 갔다. 무대 위에서 가장 빛나는 최산의 옆자리, 앰프의 울림이 귓가를 찢는 이 위치는 우영에게 있어 세상에서 가장 잔인한 특권이었다.</p>
+                    <p class="mb-4">최산의 계절은 늘 너무 뜨거워서, 그 곁에 서 있는 나는 매번 말라 죽어갈 각오를 해야 했다.</p>
+                    <p class="mb-4">산이 가진 고유의 온도누구에게나 평등하게 다정했고, 불특정 다수를 향해 거침없이 퍼져나가는 태양과도 같았다. 부원들에게 이온 음료를 챙겨줄 때의 무던한 웃음, 후배들의 연주를 교정해 줄 때의 다정한 손길, 공연을 찾아온 이들을 매료시키는 목소리까지. 최산이라는 계절은 멈추지 않고 주변의 모든 것을 따뜻하게 감쌌다.</p>
+                    <p class="mb-4">하지만 그렇기에 우영에게 있어 최산은 다가갈수록 제 몸을 까맣게 태워버리는 불꽃에 다름없었다. 그 뜨거운 다정함이 오직 자신만을 향한 것이 아님을 알면서도, 그 곁을 벗어나지 못해 맴도는 스스로가 허탈했다. 그 곁에 서서 연주를 계속하려면 제 안의 감정을 모조리 말려 죽여서라도 덤덤한 친구의 껍데기를 유지해야만 했다.</p>
+                    <p class="mb-4">피크를 쥔 손가락 끝이 단단하게 굳어졌다. 굳은살이 잡힌 손가락 마디로 전해지는 줄의 진동이 아찔하게 심장을 파고들었다. 우영은 입술을 바짝 말린 채 앰프에서 흘러나오는 사운드에 제 감정을 억지로 짓눌렀다. 최산의 목소리가 찌를 듯이 높아질수록 우영의 일렉 기타 리프는 더욱 사납고 정교하게 엮여 들어갔다.</p>
+                    <p class="mb-4">마침내 곡의 클라이맥스에 도달했을 때, 산이 마이크를 움켜쥐고 마지막 후련한 고음을 뿜어냈다. 지하 합주실의 천장이 울릴 듯한 울림 끝에 보컬이 멈췄고, 이내 드럼의 마지막 타격이 이어졌다.</p>
+                    <p class="mb-4">"오케이, 10분만 쉬자!"</p>
+                    <p class="mb-4">산의 무던하면서도 젖은 목소리가 멈춰 선 공간에 떨어졌다. 빡센 합주가 멈추자마자 앰프에서는 특유의 잔잔한 웅- 하는 사운드 피크만 남은 채 지독하리만치 조용한 정적이 밀려왔다. 우영은 어깨에 메고 있던 기타 스트랩의 무게를 견디지 못하겠다는 듯, 지친 기색으로 피크를 쥔 손을 스르륵 떨어뜨렸다.</p>
+                    <p class="mb-4">15분이라는 감질나는 휴식 시간이 주어지자마자, 부원들은 약속이라도 한 듯 바닥에 털썩 주저앉아 헐떡이는 숨을 골랐다. 앰프의 울림이 멈춘 방 안에는 벽걸이 선풍기가 덜컹거리며 도는 기계음과 가쁜 숨소리만이 아지랑이처럼 떠다녔다. 우영은 무거운 일렉 기타를 랙에 겨우 걸쳐놓은 뒤, 땀에 젖은 몸을 벽면에 기대어 털썩 주저앉았다. 습기를 머금은 소음 흡음재가 등짝에 닿아 축축하고 눅눅한 기운을 퍼뜨렸지만, 손가락 마디 하나 움직일 기력이 없어 그대로 눈을 감았다.</p>
+                    <p class="mb-4">그때, 시원한 이온 음료 캔이 우영의 볼가에 툭 하고 닿았다. 차가운 금속성 감각에 화들짝 놀란 우영이 눈을 뜨자, 눈앞에는 방금 마이크를 내려놓은 산이 서 있었다. 땀에 젖은 앞머리를 툭툭 털어내며 캔을 내미는 산의 얼굴에는 미소가 걸려 있었다.</p>
+                    <p class="mb-4">"물이라도 좀 마시면서 하지. 손 떨린다, 영아."</p>
+                    <p class="mb-4">산이 툭 던지듯 말하며 우영의 옆자리 바닥에 털썩 앉았다. 우영은 캔을 받아 들며 괜히 피식 웃음을 흘렸다. 땀으로 젖은 셔츠 사이로 산의 온기가 훅 하고 밀려들었다.</p>
+                    <p class="mb-4">이어서 산의 묵직한 손길이 우영의 왼손을 잡아챘다. 오랜 연주로 굳은살이 잡히다 못해 붉게 짓물려 있는 우영의 손가락 끝을 무심한 눈으로 바라보던 산이 주머니에서 일회용 밴드 하나를 꺼냈다. 손가락 마디를 따라 무심하게 밴드를 감아주려는 산의 다정한 행동에 우영의 가슴속 깊은 곳에서 아찔한 경련이 일어났다. 이 덤덤한 친절이, 굳이 의미를 부여할 수 없는 동갑내기 친구의 배려가 마음을 온통 헤집어놓았다.<br>우영은 슬그머니 손을 빼내려다 말고, 도리어 어깨를 찌푸리며 특유의 매끄러운 목소리로 앙살을 부렸다.</p>
+                    <p class="mb-4">"아잉, 우리 따니 나 걱정해 주는 거야? 감동해서 눈물 나려 그러네."</p>
+                    <p class="mb-4">마음속에서 솟구치는 불안과 떨림을 깔끔하게 뒤로 숨긴 채, 우영은 눈꼬리를 접어 올리며 장난스럽게 산의 어깨를 툭 쳤다. 제 안의 절박한 감정을 징그럽거나 낯간지러운 애교 뒤에 은폐하는 것은 우영이 오랜 시간 훈련해 온 유일한 방어기제였다. 산에게 마음을 들키는 순간, 지금 유지하고 있는 이 궤도조차 박살 나 버릴 것이라는 공포 때문이었다.</p>
+                    <p class="mb-4">산은 우영의 과장된 애교에 어이가 없다는 듯 피식 웃음을 터뜨리며, 밴드를 붙여준 우영의 손가락 끝을 살짝 쥐었다가 놓았다.</p>
+                    <p class="mb-4">"일렉은 손이 제일 중요하잖아. 괜히 억지 부리다 손 다치지 말고 적당히 해."</p>
+                    <p class="mb-4">다정함과 무던함이 마구 섞인 그 음성에 우영은 침을 꼴깍 삼켰다. 최산은 늘 이런 식이었다. 아무렇지도 않게 다가와 우영의 세계를 온통 흔들어놓고는, 제자리에 서서 바위처럼 가만히 웃고만 있었다.</p>
+                    <p class="mb-4">어느덧 약속된 쉬는 시간이 끝나고 밤 깊은 시간까지 이어진 빡센 합주가 마침내 마침표를 찍었다. 다른 부원들은 내일 스케줄과 과제를 핑계로 서둘러 가방을 챙겨 지하 합주실을 빠져나갔다. 뒤풀이나 야식 따위는 엄두도 내지 못할 만큼 모두가 가루가 되어버린 새벽이었다.</p>
+                    <p class="mb-4">결국 캄캄하고 넓은 지하 합주실에 남은 것은 우영과 산, 단둘뿐이었다.</p>
+                    <p class="mb-4">"라인 꼬인 것만 정리하고 나가자."</p>
+                    <p class="mb-4">"응, 앰프 전원 내릴게."</p>
+                    <p class="mb-4">웅- 하고 울리던 앰프의 파워 스위치가 차례로 꺼지자, 합주실은 비로소 완전한 정적 속에 잠겨들었다. 우영은 이펙터 선을 차곡차곡 감아 정리하며 산의 움직임을 눈에 담았다. 산은 스탠드 마이크를 구석으로 치우고 무거운 앰프 랙을 정리하느라 가쁜 숨을 내쉬고 있었다.</p>
+                    <p class="mb-4">정리를 다 마치자 끼익하는 쇳소리와 함께 지하 합주실의 묵직한 셔터문이 내려졌다. 자물쇠를 채운 산이 열쇠를 주머니에 넣으며 돌아서자, 좁고 캄캄한 계단 위로 얇은 새벽달 빛이 스며들었다.</p>
+                    <p class="mb-4">합주실 밖으로 나오자 지독하게 텁텁하던 공기는 온데간데없고, 새벽녘 특유의 차가운 이슬 기운이 피부에 와닿았다. 적막한 대학가 골목길을 두 사람은 나란히 걷기 시작했다.</p>
+                    <p class="mb-4">그때, 산이 자연스럽게 팔을 뻗어 우영의 어깨 위로 굵은 팔을 툭 얹었다. 묵직한 체온이 어깨를 눌러왔고, 닿은 피부 너머로 산의 심장 박동이 전해지는 것만 같았다. 우영의 귀 끝이 순식간에 불타오르듯 새빨개졌다. 심장이 갈비뼈를 때리며 미친 듯이 박동하기 시작했지만, 우영은 일부러 몸을 바짝 밀착시키며 산의 허리께를 슬쩍 감싸 안았다.</p>
+                    <p class="mb-4">"아우, 추워어. 따니야, 어깨 좀 더 좁혀봐라. 바람 다 들어온다."</p>
+                    <p>아무렇지 않은 척, 그저 평소처럼 앵기는 찐친인 척 애교를 부리며 우영은 콧소리를 냈다. 산은 풋-, 하고 웃음을 터뜨리며 우영의 어깨를 조금 더 깊숙이 끌어당겨 안아주었다.<br><br>어둠이 짙게 깔린 새벽 골목길, 나란히 걸어가는 두 사람의 그림자가 기다랗게 얽혀들었다. 산의 곁에 밀착해 걸어가면서도 우영의 눈동자는 어둠 속 허공을 아련하게 헤매고 있었다. 언제 터질지 몰라 아슬아슬하게 숨겨둔 이 마음의 유효기간이 언제까지일지, 우영은 알 수 없었다.</p>
+                </div>
+
+                <!-- Support Button -->
+                <div class="flex justify-center mb-10">
+                    <div class="border border-[#333] rounded-full px-5 py-2.5 flex items-center gap-2 cursor-pointer active:bg-[#111]">
+                        <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path></svg>
+                        <span class="text-[13px] font-medium">포스트 후원하기</span>
+                    </div>
+                </div>
+
+                <!-- Tag -->
+                <div class="mb-8">
+                    <span style="background:#222; padding:4px 10px; border-radius:12px; font-size:12px;" class="text-gray-400 font-medium">
+                        낫웡
+                    </span>
+                </div>
+
+                <div class="h-[1px] w-full bg-[#222] mb-6"></div>
+
+                <!-- Next Post -->
+                <div class="flex items-center gap-4 mb-8">
+                    <span class="text-gray-500 text-[13px] whitespace-nowrap">다음</span>
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <div class="flex flex-col overflow-hidden">
+                            <span class="text-[14px] font-bold truncate">비밀의 궤도</span>
+                            <span class="text-[12px] text-gray-500 truncate">Ep.2</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Channel Box -->
+                <div class="bg-[#111] rounded-2xl p-4 flex items-center justify-between mb-10 border border-[#222]">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-2xl bg-gray-800 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="font-bold text-[15px]">낫웡</span>
+                            <span class="text-[12px] text-gray-500">구독자 500명</span>
+                        </div>
+                    </div>
+                    <div class="bg-[#222] text-gray-300 text-[12px] font-bold px-3 py-1.5 rounded-lg cursor-pointer">
+                        관리
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fixed Bottom Comment Bar -->
+            <div class="absolute bottom-0 w-full bg-[#111] rounded-t-2xl pt-4 px-4 pb-8 z-50">
+                <div class="text-[13px] font-bold mb-3 flex items-center gap-1">
+                    댓글 30 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center">
+                         <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    <div class="text-[13px] text-gray-500 bg-transparent flex-1 outline-none">
+                        작가에게 힘이 되는 한마디 남기기...
+                    </div>
+                </div>
+                <div class="home-indicator-container absolute bottom-0 left-0" onclick="closeApp()">
+                    <div class="home-indicator" style="background-color: white; opacity: 0.8;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= POSTYPE DETAIL SCREEN 2 (TEMPLATE) ================= -->
+        <div id="postype-detail-screen-2" class="screen">
+            <!-- Top Navigation Bar -->
+            <div class="flex items-center justify-between px-4 pt-12 pb-3 bg-black border-b border-[#111]">
+                <div class="cursor-pointer p-1" onclick="closePostDetail2()">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </div>
+                <div class="flex items-center gap-4 text-white">
+                    <!-- Settings -->
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <!-- Share -->
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    <!-- More -->
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"/></svg>
+                </div>
+            </div>
+
+            <!-- Detail Scrollable Content -->
+            <div class="flex-1 overflow-y-auto no-scrollbar bg-black px-4 pt-6 pb-40">
+                <!-- Title & Profile -->
+                <h1 class="text-2xl font-bold mb-2">비밀의 궤도</h1>
+                <h2 class="text-[15px] text-gray-400 mb-5">Ep.2</h2>
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-medium text-[14px]">낫웡러</span>
+                        <span class="text-[12px] text-gray-500">2026. 10. 24.</span>
+                    </div>
+                </div>
+
+                <div class="h-[1px] w-full bg-[#222] mb-6"></div>
+
+                <!-- Body Content -->
+                <div class="text-gray-300 text-[15px] leading-relaxed mb-12 min-h-[150px]">
+                    <p class="mb-4">*00000자*<br>*낫웡*</p>
+                    <p class="mb-4">새벽 1시가 훌쩍 넘어선 시각, 적막한 골목길을 지나 도달한 곳은 학교 근처 산의 자취방이었다. 비밀번호를 누르고 들어가자 도어락이 작게 띠리릭 소리를 내며 열렸다. 현관에 들어서자마자 뿜어져 나오는 온기는 아까 합주실에서 느꼈던 눅눅한 습기와는 전혀 다른 종류의 것이었다. 오래된 섬유유연제 향과 서늘한 집 안 공기, 그리고 최산이라는 사람 그 자체에서 뿜어져 나오는 온기가 오묘하게 엉켜 현관 입구부터 우영의 피부에 번져 왔다.</p>
+                    <p class="mb-4">우영은 고등학교 때부터 워낙 문턱이 닳도록 오르내리던 공간이었기에 자연스럽게 신발을 벗어 던지고 안으로 들어섰다. 좁은 자취방 내부에는 산의 성격답게 물건들이 튀지 않게 정돈되어 있었고, 공기 중에는 늘 맡아오던 특유의 서늘함이 맴돌고 있었다. 우영은 익숙한 동작으로 땀과 먼지가 배어 있는 겉옷을 벗어 책상 의자 등받이에 걸쳤다. 산은 주방으로 걸어가 냉수 한 컵을 비워 내고는 침대 옆 스탠드 조명만 주황빛으로 얕게 켜 두었다.</p>
+                    <p class="mb-4">"씻고 자라. 샤워 타월 새로 꺼내 놨어."</p>
+                    <p class="mb-4">"오야. 산아, 너 먼저 누워 있어."</p>
+                    <p class="mb-4">우영은 욕실로 들어가 찬물로 얼굴을 씻어 냈다. 수도꼭지에서 떨어지는 차가운 물줄기를 맞으며 손바닥에 얼굴을 묻었다. 거울 속에 비친 제 모습은 땀과 피로, 그리고 온종일 숨겨야만 했던 애정의 무게 때문에 눈 밑이 퀭하게 파여 있었다. 붉게 달아오른 눈가와 물기가 축축하게 늘어진 머리칼을 타월로 대충 털어내며 욕실 문을 열고 밖으로 나왔다. 산은 이미 침대 안쪽으로 들어가 벽을 향해 모로 누워 있었다. 벽면의 옅은 주황색 조명 조각이 산의 묵직한 등판을 은은하게 비추고 있었다. 우영은 침대에 조심스럽게 몸을 뉘었다.</p>
+                    <p class="mb-4">바스락거리는 이불 소리와 함께 자취방 안은 이내 완전한 어둠과 적막 속에 빠져들었다.</p>
+                    <p class="mb-4">우영이 눈을 감고 막 잠을 청하려던 순간이었다. 옆에서 고른 숨소리를 내며 깊은 잠에 빠져든 줄 알았던 산의 몸이 스르륵 우영 쪽으로 기울어졌다. 그러더니 산의 손이 자연스럽게 우영의 허리께를 넘어와 그대로 깊게 끌어안았다. 산은 잠결에 우영을 제 가슴팍에 푹 파고들게 해 제 턱을 우영의 정수리 위에 기댔다.</p>
+                    <p class="mb-4">우영의 온몸이 순간 돌처럼 굳어 버렸다. 숨마저 턱 막혀 오며 두 눈이 어둠 속에서 크게 흔들렸다.</p>
+                    <p class="mb-4">사실 산에게는 본인조차 까마득히 모르는 굳은 잠버릇이 하나 있었다. 고등학교 2학년 때 처음 녀석의 집에서 자고 가던 날부터 지금까지, 산은 잠자리에 들기만 하면 옆에 누운 우영을 마치 소중한 애착 인형이라도 되는 양 품에 꼭 끌어안고 자곤 했다. 가슴팍으로 파고드는 머리칼의 느낌이나, 제 품에 사람을 완전히 가둔 느낌을 받아야만 비로소 안정을 찾는 것이 고등학생 시절이나 지금이나 토씨 하나 틀리지 않고 똑같았다.</p>
+                    <p class="mb-4">정작 본인은 늘 우영보다 늦게 깨어났기에 제 행동을 전혀 알지 못했다. 우영이 매번 산의 품에 갇힌 채 심장이 터질 것 같은 밤을 지새우다가, 얇은 새벽빛이 스며들 무렵 산이 깨지 않도록 조심스럽게 그 품에서 스르륵 빠져나왔기 때문이었다. 수년 동안 이 은밀하고 서글픈 밤의 비밀을 홀로 지켜온 것은 온전히 우영의 몫이었다.</p>
+                    <p class="mb-4">산의 덥혀진 체온이 얇은 면 티셔츠를 뚫고 우영의 가슴팍으로 파고들었다. 고스란히 느껴지는 산의 일정한 심장 박동과 규칙적인 숨소리가 귓가를 맹렬하게 때렸다. 산의 손이 닿아 있는 제 허리 부근도, 서로 맞닿아 있는 가슴팍에서도 기이한 열증이 피어올라 온몸의 신경을 아찔하게 짓눌렀다.</p>
+                    <p class="mb-4">산의 깊은 숨결이 우영의 머리를 스칠 때마다, 최산 특유의 체향이 조금씩 조금씩 진해져만 갔다. 지하 합주실의 텁텁함도, 밤거리의 차가운 이슬도 아닌, 오직 최산이라는 사람의 온도에서만 피어나는 고유의 무언가. 그래 말하자면..새벽 안개처럼 말이다.</p>
+                    <p class="mb-4">산의 몸에서는 늘 새벽안개 냄새가 났다. 우영은 그 냄새를 밟고 서서, 한 번도 가보지 못한 계절을 그리워했다.</p>
+                    <p class="mb-4">그것은 산의 진짜 연인이 되어, 아무런 거짓이나 방어기제 없이 이 다정한 품에 온전히 안길 수 있는 완벽하고 환상적인 계절이었다. 평생을 절친이라는 허울 좋은 이름 뒤에 숨어 마음에만 품어온 그 계절은, 우영이 아무리 손을 뻗어도 결코 도달할 수 없는 아득하고 서글픈 영역이었다. 다정하게 제 허리를 감싸쥐는 이 손길이 애정이 아닌 그저 미련한 잠버릇에 불과하다는 사실이 우영의 가슴 한구석을 송곳처럼 후벼 팠다.</p>
+                    <p class="mb-4">바보 같은 놈. 잠버릇 한번 요상해서 사람을 이상하게 만드네.</p>
+                    <p class="mb-4">우영은 산의 품 안에서 눈을 꼭 감은 채 입술을 바짝 말렸다. 산이 꿈속을 해메며 저를 안고 있는 동안에도, 우영의 심장은 금방이라도 터져 버릴 것처럼 불안하게 요동쳤다. 혹시라도 제 미친 듯한 박동 소리가 산의 귓가에 닿아 그를 깨울까 봐, 우영은 숨조차 마음놓고 쉬지 못하고 참아 내야만 했다. 어둠 속에서 산의 손가락이 꼼지락 거리는 탓에 허리가 요상야릇하게 간지러웠지만 감히 움직일 엄두조차 내지 못했다.</p>
+                    <p class="mb-4">산의 단단한 팔이 잠결에 우영의 허리를 조금 더 세게 당겨 안더니 고개를 숙여 목덜미에 얼굴을 문질렀다. 맨살에 닿는 산의 입술의 온기에 우영은 전율하며 손을 꽉 쥐었다. 자신을 이토록 아늑하게 감싸 쥐는 온기가, 정작 아침이 오면 아무런 기억도 남지 않은 채 흩어질 가짜라는 사실이 가슴을 짓눌렀다.</p>
+                    <p class="mb-4">연인이 될 수 없다면 이 짝사랑의 형태라도 영원히 유지하고 싶었다. 아침마다 이 품을 빠져나오며 느끼는 서글픔보다, 이렇게라도 최산의 새벽안개 냄새를 가장 가까운 거리에서 맡을 수 있다는 사실이 우영에게는 유일한 구원이자 가장 아찔한 형벌이었다. 마음을 정리하겠다고 다짐하면서도 이 무덤덤한 체온 하나에 모조리 허물어져 버리는 스스로가 한심했다.</p>
+                    <p class="mb-4">밤은 천천히 깊어 갔고, 산의 규칙적인 숨소리만이 좁은 자취방 안을 가득 채웠다. 우영은 고개를 조금 뒤로 빼서 잠든 산의 턱선과 닫힌 두 눈을 어둠 속에서 가만히 훑어보았다. 마이크 앞에서 그토록 강렬하게 뿜어져 나오던 무대 위의 열기는 지금 이 정적 속에서 덤덤하고 평온하게 가라앉아 있었다. 무대 위나 합주실에서는 태양처럼 뜨겁게 모두를 끌어당기던 최산이, 지금 이 순간만큼은 오직 자신의 품에 갇혀 있다는 사실이 서글픈 만족감을 주었다.</p>
+                    <p class="mb-4">어둠이 점점 옅어지고, 창문 커튼 틈새로 서서히 얇은 새벽빛이 스며들기 시작했다. 푸르스름한 조도가 침대 위를 옅게 비추자, 우영은 아쉬움으로 가득 찬 한숨을 속으로 길게 삼켜 냈다. 이제 이 환상 같은 밤을 끝내고 아무렇지 않은 친구 정우영으로 돌아갈 시간이었다.</p>
+                    <p class="mb-4">우영은 산의 팔을 조심스럽게 들춰내며, 그가 깨지 않도록 숨을 죽이고 스르륵 품에서 빠져나왔다. 침대 끝으로 스르륵 밀려 나온 우영은 헝클어진 머리를 손으로 매만지며 침대 끝자락에 가만히 걸터앉았다.</p>
+                    <p>차가운 새벽 공기가 피부에 닿아왔지만, 산이 남겨둔 체온의 잔상은 여전히 목덜미와 가슴팍에 뜨겁게 남아 있었다. 우영은 고개를 돌려 여전히 무던한 표정으로 깊은 잠에 빠져 있는 산의 얼굴을 가만히 내려다보았다. 눈을 뜨면 다시 애교를 부리고 틱틱대며 제 마음을 감추어야 할 아침이 다가오고 있었다.</p>
+                </div>
+
+                <!-- Support Button -->
+                <div class="flex justify-center mb-10">
+                    <div class="border border-[#333] rounded-full px-5 py-2.5 flex items-center gap-2 cursor-pointer active:bg-[#111]">
+                        <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path></svg>
+                        <span class="text-[13px] font-medium">포스트 후원하기</span>
+                    </div>
+                </div>
+
+                <!-- Tag -->
+                <div class="mb-8">
+                    <span style="background:#222; padding:4px 10px; border-radius:12px; font-size:12px;" class="text-gray-400 font-medium">
+                        낫웡
+                    </span>
+                </div>
+
+                <div class="h-[1px] w-full bg-[#222] mb-6"></div>
+
+                <!-- Next Post -->
+                <div class="flex items-center gap-4 mb-8">
+                    <span class="text-gray-500 text-[13px] whitespace-nowrap">다음</span>
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <div class="flex flex-col overflow-hidden">
+                            <span class="text-[14px] font-bold truncate">비밀의 궤도</span>
+                            <span class="text-[12px] text-gray-500 truncate">Ep.3</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Channel Box -->
+                <div class="bg-[#111] rounded-2xl p-4 flex items-center justify-between mb-10 border border-[#222]">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-2xl bg-gray-800 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="font-bold text-[15px]">낫웡</span>
+                            <span class="text-[12px] text-gray-500">구독자 500명</span>
+                        </div>
+                    </div>
+                    <div class="bg-[#222] text-gray-300 text-[12px] font-bold px-3 py-1.5 rounded-lg cursor-pointer">
+                        관리
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fixed Bottom Comment Bar -->
+            <div class="absolute bottom-0 w-full bg-[#111] rounded-t-2xl pt-4 px-4 pb-8 z-50">
+                <div class="text-[13px] font-bold mb-3 flex items-center gap-1">
+                    댓글 30 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    <div class="text-[13px] text-gray-500 bg-transparent flex-1 outline-none">
+                        작가에게 힘이 되는 한마디 남기기...
+                    </div>
+                </div>
+                <div class="home-indicator-container absolute bottom-0 left-0" onclick="closeApp()">
+                    <div class="home-indicator" style="background-color: white; opacity: 0.8;"></div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Elements
+            const lockScreen = document.getElementById('lock-screen');
+            const passcodeScreen = document.getElementById('passcode-screen');
+            const homeScreen = document.getElementById('home-screen');
+            const appView = document.getElementById('app-view');
+            const lsTime = document.getElementById('ls-time');
+            const lsDate = document.getElementById('ls-date');
+            
+            const dotsContainer = document.getElementById('passcode-dots');
+            const dots = document.querySelectorAll('.passcode-dot');
+            
+            let currentPasscode = '';
+            const CORRECT_PASSCODE = '0710';
+
+            // Clock
+            function updateClock() {
+                const now = new Date();
+                
+                // Time
+                let hours = now.getHours();
+                let minutes = now.getMinutes();
+                hours = hours % 12 || 12; 
+                minutes = minutes < 10 ? '0' + minutes : minutes;
+                lsTime.textContent = `${hours}:${minutes}`;
+
+                // Use the static requested date text to match the vibe
+                // lsDate.textContent = `10월 26일 월요일`; 
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
+
+            // Interactions
+            const swipeArea = document.getElementById('swipe-area');
+            const lsHomeIndicator = document.getElementById('ls-home-indicator');
+
+            function triggerPasscodeScreen() {
+                lockScreen.classList.add('swipe-up');
+                setTimeout(() => {
+                    passcodeScreen.classList.add('active');
+                }, 300);
+            }
+
+            swipeArea.addEventListener('click', triggerPasscodeScreen);
+            lsHomeIndicator.addEventListener('click', triggerPasscodeScreen);
+            
+            let touchStartY = 0;
+            lockScreen.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; });
+            lockScreen.addEventListener('touchend', e => {
+                const touchEndY = e.changedTouches[0].clientY;
+                if (touchStartY - touchEndY > 50) { 
+                    triggerPasscodeScreen();
+                }
+            });
+
+            // Passcode
+            function pressKey(num) {
+                if (currentPasscode.length < 4) {
+                    currentPasscode += num;
+                    updateDots();
+                    
+                    if (currentPasscode.length === 4) {
+                        setTimeout(checkPasscode, 150);
+                    }
+                }
+            }
+
+            function updateDots() {
+                dots.forEach((dot, index) => {
+                    if (index < currentPasscode.length) {
+                        dot.classList.add('filled');
+                    } else {
+                        dot.classList.remove('filled');
+                    }
+                });
+            }
+
+            function checkPasscode() {
+                if (currentPasscode === CORRECT_PASSCODE) {
+                    passcodeScreen.classList.remove('active');
+                    homeScreen.classList.add('active');
+                } else {
+                    dotsContainer.classList.add('shake');
+                    setTimeout(() => {
+                        dotsContainer.classList.remove('shake');
+                        currentPasscode = '';
+                        updateDots();
+                    }, 400);
+                }
+            }
+
+            function cancelPasscode() {
+                if (currentPasscode.length > 0) {
+                    currentPasscode = currentPasscode.slice(0, -1);
+                    updateDots();
+                }
+            }
+
+            // App Logic
+            const appTitleEl = document.getElementById('app-title');
+            const appContentEl = document.getElementById('app-content');
+            const appIconLargeEl = document.getElementById('app-icon-large');
+            const phoneAppEl = document.getElementById('phone-app');
+            const keypadInputEl = document.getElementById('keypad-input');
+            const keypadBackspaceEl = document.getElementById('keypad-backspace');
+
+            const iconMap = {
+                'Phone': '📞', 'Safari': '🧭', 'Messages': '💬', 'Music': '🎵',
+                'FaceTime': '📹', '캘린더': '📅', '사진': '🖼️', 'Mail': '✉️',
+                '시계': '⏰', '메모': '📝', 'App Store': '🛍️', '설정': '⚙️',
+                '포스타입': '🖤'
+            };
+
+            function openApp(appName, bgColor) {
+                // 허용된 앱(포스타입, 전화, 메시지)만 실행되도록 필터링
+                const allowedApps = ['Phone', '포스타입', 'Messages'];
+                if (!allowedApps.includes(appName)) {
+                    return; // 허용되지 않은 앱을 누르면 아무 창도 띄우지 않고 종료
+                }
+
+                if (appName === 'Phone') {
+                    homeScreen.style.transform = 'scale(0.95)';
+                    homeScreen.style.opacity = '0.5';
+                    setTimeout(() => { phoneAppEl.classList.add('active'); }, 50);
+                    return;
+                }
+
+                if (appName === '포스타입') {
+                    homeScreen.style.transform = 'scale(0.95)';
+                    homeScreen.style.opacity = '0.5';
+                    setTimeout(() => { document.getElementById('postype-app').classList.add('active'); }, 50);
+                    return;
+                }
+
+                appTitleEl.textContent = appName;
+                appIconLargeEl.textContent = iconMap[appName] || '📱';
+                appContentEl.style.backgroundColor = bgColor;
+
+                homeScreen.style.transform = 'scale(0.95)';
+                homeScreen.style.opacity = '0.5';
+                
+                setTimeout(() => {
+                    appView.classList.add('active');
+                }, 50);
+            }
+
+            function closeApp() {
+                appView.classList.remove('active');
+                phoneAppEl.classList.remove('active');
+                document.getElementById('postype-app').classList.remove('active');
+                document.getElementById('postype-detail-screen').classList.remove('active');
+                document.getElementById('postype-detail-screen-2').classList.remove('active');
+                homeScreen.style.transform = 'scale(1)';
+                homeScreen.style.opacity = '1';
+            }
+
+            // Postype Detail
+            function openPostDetail() {
+                document.getElementById('postype-detail-screen').classList.add('active');
+            }
+
+            function closePostDetail() {
+                document.getElementById('postype-detail-screen').classList.remove('active');
+            }
+
+            function openPostDetail2() {
+                document.getElementById('postype-detail-screen-2').classList.add('active');
+            }
+
+            function closePostDetail2() {
+                document.getElementById('postype-detail-screen-2').classList.remove('active');
+            }
+
+            // Custom Phone App 
+            let currentPhoneNumber = '';
+
+            function typeNumber(num) {
+                currentPhoneNumber += num;
+                updateKeypadDisplay();
+            }
+
+            function deleteNumber() {
+                if (currentPhoneNumber.length > 0) {
+                    currentPhoneNumber = currentPhoneNumber.slice(0, -1);
+                    updateKeypadDisplay();
+                }
+            }
+
+            function updateKeypadDisplay() {
+                let formatted = currentPhoneNumber;
+                if (currentPhoneNumber.length > 3 && currentPhoneNumber.length <= 7) {
+                    formatted = currentPhoneNumber.slice(0, 3) + '-' + currentPhoneNumber.slice(3);
+                } else if (currentPhoneNumber.length > 7) {
+                    formatted = currentPhoneNumber.slice(0, 3) + '-' + currentPhoneNumber.slice(3, 7) + '-' + currentPhoneNumber.slice(7, 11);
+                }
+                
+                keypadInputEl.textContent = formatted;
+
+                if (currentPhoneNumber.length > 0) {
+                    keypadBackspaceEl.classList.remove('hidden');
+                } else {
+                    keypadBackspaceEl.classList.add('hidden');
+                }
+            }
+
+            function switchPhoneTab(tabName) {
+                document.getElementById('tab-content-keypad').classList.add('hidden');
+                document.getElementById('tab-content-recent').classList.add('hidden');
+                document.getElementById('tab-content-contacts').classList.add('hidden');
+                
+                document.getElementById('tab-btn-keypad').classList.remove('active');
+                document.getElementById('tab-btn-recent').classList.remove('active');
+                document.getElementById('tab-btn-contacts').classList.remove('active');
+                
+                document.getElementById('tab-content-' + tabName).classList.remove('hidden');
+                document.getElementById('tab-content-' + tabName).classList.add('flex');
+                
+                document.getElementById('tab-btn-' + tabName).classList.add('active');
+            }
+        </script>
+    </div>
+</body>
+</html>
