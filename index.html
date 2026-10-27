@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -233,6 +234,27 @@
             border-radius: 0;
         }
 
+        /* Messages App */
+        #messages-app {
+            z-index: 35;
+            background-color: #000000;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.8) translateY(20%);
+            border-radius: 40px;
+            overflow: hidden;
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #messages-app.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1) translateY(0);
+            border-radius: 0;
+        }
+
         /* Postype App */
         #postype-app {
             z-index: 35;
@@ -288,6 +310,49 @@
             opacity: 1;
             pointer-events: auto;
             transform: translateX(0);
+        }
+
+        /* Message Detail Screen */
+        #message-detail-screen {
+            z-index: 45;
+            background-color: #000000;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(100%);
+            display: flex;
+            flex-direction: column;
+            color: white;
+        }
+
+        #message-detail-screen.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(0);
+        }
+        
+        .msg-bubble-received {
+            background-color: #262628;
+            color: white;
+            border-radius: 18px;
+            padding: 8px 14px;
+            max-width: 75%;
+            width: fit-content;
+            font-size: 15px;
+            line-height: 1.4;
+        }
+
+        /* Incoming Call Screen */
+        #incoming-call-screen {
+            z-index: 100;
+            background: linear-gradient(to bottom, #4b4f54 0%, #2b2c30 100%);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        #incoming-call-screen.active {
+            opacity: 1;
+            pointer-events: auto;
         }
 
         .phone-tab-btn {
@@ -778,6 +843,105 @@
             </div>
         </div>
 
+        <!-- ================= MESSAGES APP VIEW ================= -->
+        <div id="messages-app" class="screen">
+            <!-- Header -->
+            <div class="pt-14 px-4 flex justify-between items-center text-[#0a84ff] text-[17px] mb-2 font-medium">
+                <span class="cursor-pointer">편집</span>
+                <svg class="w-6 h-6 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+            </div>
+            
+            <!-- Title -->
+            <h1 class="px-4 text-[32px] font-bold mb-2 tracking-tight">메시지</h1>
+            
+            <!-- Search Bar -->
+            <div class="px-4 mb-4">
+                <div class="bg-[#1c1c1e] rounded-[10px] flex items-center px-3 py-1.5">
+                    <svg class="w-4 h-4 text-gray-500 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <span class="text-gray-500 text-[16px]">검색</span>
+                </div>
+            </div>
+            
+            <!-- Message List -->
+            <div class="flex-1 overflow-y-auto no-scrollbar">
+                <!-- Single Message Item -->
+                <div class="flex items-center pl-1 pr-4 py-2 cursor-pointer active:bg-[#1c1c1e] transition-colors" onclick="openMessageDetail()">
+                    <!-- Unread Dot -->
+                    <div class="w-4 flex justify-center ml-1 mr-1">
+                        <div class="w-[10px] h-[10px] bg-[#0a84ff] rounded-full"></div>
+                    </div>
+                    
+                    <!-- Profile Picture -->
+                    <div class="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center mr-3 flex-shrink-0">
+                        <svg class="w-8 h-8 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    
+                    <!-- Message Content -->
+                    <div class="flex-1 border-b border-[#222] pb-3 pt-1">
+                        <div class="flex justify-between items-center mb-0.5">
+                            <span class="font-semibold text-[16px] truncate max-w-[160px]">산이 ⛰️</span>
+                            <div class="flex items-center text-gray-500 text-[14px]">
+                                <span>오후 3:30</span>
+                                <svg class="w-[14px] h-[14px] ml-1 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </div>
+                        </div>
+                        <div class="text-gray-400 text-[14px] leading-snug line-clamp-2 pr-4">
+                            우영아 뭐해?
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Home Indicator (Overlay) -->
+            <div class="home-indicator-container absolute bottom-0 z-[60]" onclick="closeApp()">
+                <div class="home-indicator" style="background-color: white; opacity: 0.8;"></div>
+            </div>
+        </div>
+
+        <!-- ================= MESSAGE DETAIL SCREEN ================= -->
+        <div id="message-detail-screen" class="screen">
+            <!-- Header -->
+            <div class="pt-12 pb-2 px-2 flex items-center bg-[#1c1c1e]/90 backdrop-blur-md border-b border-[#333] z-10 relative">
+                <div class="flex-1 flex items-center text-[#0a84ff] cursor-pointer pl-2" onclick="closeMessageDetail()">
+                    <svg class="w-6 h-6 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    <span class="text-[17px]">3</span>
+                </div>
+                <div class="flex-1 flex flex-col items-center justify-center absolute left-1/2 transform -translate-x-1/2">
+                    <div class="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center mb-0.5">
+                        <svg class="w-5 h-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    <div class="flex items-center text-[10px] text-gray-400 font-medium">
+                        산이 ⛰️ <svg class="w-3 h-3 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+                    </div>
+                </div>
+                <div class="flex-1 flex justify-end"></div>
+            </div>
+            
+            <!-- Chat Area -->
+            <div class="flex-1 overflow-y-auto px-4 pt-6 pb-24 flex flex-col gap-4 bg-black no-scrollbar">
+                <div class="flex w-full">
+                    <div class="msg-bubble-received">
+                        우영아 뭐해?
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="absolute bottom-0 w-full bg-[#1c1c1e]/90 backdrop-blur-md pt-3 pb-8 px-3 flex items-end gap-3 z-10 border-t border-[#333]">
+                <div class="w-8 h-8 flex-shrink-0 bg-[#333] rounded-full flex items-center justify-center mb-0.5 cursor-pointer">
+                    <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </div>
+                <div class="flex-1 bg-black border border-[#333] rounded-full px-4 py-1.5 flex items-center min-h-[36px]">
+                    <span class="text-gray-500 text-[15px] flex-1 truncate">문자 메시지</span>
+                    <svg class="w-5 h-5 text-gray-400 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                </div>
+            </div>
+            
+            <div class="home-indicator-container absolute bottom-0 z-[60]" onclick="closeApp()">
+                <div class="home-indicator" style="background-color: white; opacity: 0.8;"></div>
+            </div>
+        </div>
+
         <!-- ================= POSTYPE APP VIEW ================= -->
         <div id="postype-app" class="screen">
             
@@ -1103,7 +1267,7 @@
             </div>
         </div>
 
-        <!-- ================= POSTYPE DETAIL SCREEN 2 (TEMPLATE) ================= -->
+        <!-- ================= POSTYPE DETAIL SCREEN 2 ================= -->
         <div id="postype-detail-screen-2" class="screen">
             <!-- Top Navigation Bar -->
             <div class="flex items-center justify-between px-4 pt-12 pb-3 bg-black border-b border-[#111]">
@@ -1131,7 +1295,7 @@
                     </div>
                     <div class="flex flex-col">
                         <span class="font-medium text-[14px]">낫웡러</span>
-                        <span class="text-[12px] text-gray-500">2026. 10. 24.</span>
+                        <span class="text-[12px] text-gray-500">2026. 10. 25.</span>
                     </div>
                 </div>
 
@@ -1153,7 +1317,7 @@
                     <p class="mb-4">산의 덥혀진 체온이 얇은 면 티셔츠를 뚫고 우영의 가슴팍으로 파고들었다. 고스란히 느껴지는 산의 일정한 심장 박동과 규칙적인 숨소리가 귓가를 맹렬하게 때렸다. 산의 손이 닿아 있는 제 허리 부근도, 서로 맞닿아 있는 가슴팍에서도 기이한 열증이 피어올라 온몸의 신경을 아찔하게 짓눌렀다.</p>
                     <p class="mb-4">산의 깊은 숨결이 우영의 머리를 스칠 때마다, 최산 특유의 체향이 조금씩 조금씩 진해져만 갔다. 지하 합주실의 텁텁함도, 밤거리의 차가운 이슬도 아닌, 오직 최산이라는 사람의 온도에서만 피어나는 고유의 무언가. 그래 말하자면..새벽 안개처럼 말이다.</p>
                     <p class="mb-4">산의 몸에서는 늘 새벽안개 냄새가 났다. 우영은 그 냄새를 밟고 서서, 한 번도 가보지 못한 계절을 그리워했다.</p>
-                    <p class="mb-4">그것은 산의 진짜 연인이 되어, 아무런 거짓이나 방어기제 없이 이 다정한 품에 온전히 안길 수 있는 완벽하고 환상적인 계절이었다. 평생을 절친이라는 허울 좋은 이름 뒤에 숨어 마음에만 품어온 그 계절은, 우영이 아무리 손을 뻗어도 결코 도달할 수 없는 아득하고 서글픈 영역이었다. 다정하게 제 허리를 감싸쥐는 이 손길이 애정이 아닌 그저 미련한 잠버릇에 불과하다는 사실이 우영의 가슴 한구석을 송곳처럼 후벼 팠다.</p>
+                    <p class="mb-4">그것은 산의 진짜 연인이 되어, 아무런 거짓이나 방어기제 없이 이 다정한 품에 온전히 안길 수 있는 완벽하고 환상적인 계절이었다. 평생을 절친이라는 허울 좋은 이름 뒤에 숨어 마음에만 품어온 그 계절은, 우영이 아무리 손을 정뻗어도 결코 도달할 수 없는 아득하고 서글픈 영역이었다. 다정하게 제 허리를 감싸쥐는 이 손길이 애정이 아닌 그저 미련한 잠버릇에 불과하다는 사실이 우영의 가슴 한구석을 송곳처럼 후벼 팠다.</p>
                     <p class="mb-4">바보 같은 놈. 잠버릇 한번 요상해서 사람을 이상하게 만드네.</p>
                     <p class="mb-4">우영은 산의 품 안에서 눈을 꼭 감은 채 입술을 바짝 말렸다. 산이 꿈속을 해메며 저를 안고 있는 동안에도, 우영의 심장은 금방이라도 터져 버릴 것처럼 불안하게 요동쳤다. 혹시라도 제 미친 듯한 박동 소리가 산의 귓가에 닿아 그를 깨울까 봐, 우영은 숨조차 마음놓고 쉬지 못하고 참아 내야만 했다. 어둠 속에서 산의 손가락이 꼼지락 거리는 탓에 허리가 요상야릇하게 간지러웠지만 감히 움직일 엄두조차 내지 못했다.</p>
                     <p class="mb-4">산의 단단한 팔이 잠결에 우영의 허리를 조금 더 세게 당겨 안더니 고개를 숙여 목덜미에 얼굴을 문질렀다. 맨살에 닿는 산의 입술의 온기에 우영은 전율하며 손을 꽉 쥐었다. 자신을 이토록 아늑하게 감싸 쥐는 온기가, 정작 아침이 오면 아무런 기억도 남지 않은 채 흩어질 가짜라는 사실이 가슴을 짓눌렀다.</p>
@@ -1212,11 +1376,11 @@
             <!-- Fixed Bottom Comment Bar -->
             <div class="absolute bottom-0 w-full bg-[#111] rounded-t-2xl pt-4 px-4 pb-8 z-50">
                 <div class="text-[13px] font-bold mb-3 flex items-center gap-1">
-                    댓글 30 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    댓글 25 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </div>
                 <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                         <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
                     </div>
                     <div class="text-[13px] text-gray-500 bg-transparent flex-1 outline-none">
                         작가에게 힘이 되는 한마디 남기기...
@@ -1225,6 +1389,106 @@
                 <div class="home-indicator-container absolute bottom-0 left-0" onclick="closeApp()">
                     <div class="home-indicator" style="background-color: white; opacity: 0.8;"></div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ================= INCOMING CALL SCREEN ================= -->
+        <div id="incoming-call-screen" class="screen flex flex-col justify-between pt-16 pb-16" style="background: linear-gradient(to bottom, #5a5f66 0%, #36393e 100%);">
+            <!-- Top Icons (Info & Soundwaves) -->
+            <div class="absolute top-14 w-full px-6 flex justify-between items-center text-white/60">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M4 10v4h2v-4H4zm4-4v12h2V6H8zm4-2v16h2V4h-2zm4 4v8h2V8h-2z"/></svg>
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
+            </div>
+            
+            <!-- Caller Info -->
+            <div class="text-center mt-10">
+                <p class="text-[17px] text-gray-300 font-medium mb-1 tracking-wide">휴대전화</p>
+                <h1 class="text-white text-[34px] font-normal tracking-wide relative inline-block">
+                    <span class="blur-[4px] absolute inset-0 text-white/50">산이 ⛰️</span>
+                    산이 ⛰️
+                </h1>
+            </div>
+
+            <!-- Call Actions -->
+            <div class="w-full px-10 flex flex-col gap-14">
+                <!-- Top Row Actions -->
+                <div class="flex justify-between px-2">
+                    <div class="flex flex-col items-center gap-2 cursor-pointer">
+                        <div class="w-[66px] h-[66px] rounded-full bg-white/20 flex items-center justify-center">
+                            <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 5.58 2 10c0 2.54 1.48 4.77 3.7 6.13.06.63-.16 1.6-.74 2.62a1 1 0 00.94 1.5c2.32-.42 4.18-1.55 5.25-2.3A10.87 10.87 0 0012 18c5.52 0 10-3.58 10-8s-4.48-8-10-8z" /></svg>
+                        </div>
+                        <span class="text-white text-[14px]">메시지 보내기</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 cursor-pointer">
+                        <div class="w-[66px] h-[66px] rounded-full bg-white/20 flex items-center justify-center">
+                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        </div>
+                        <span class="text-white text-[14px]">나중에 보기</span>
+                    </div>
+                </div>
+
+                <!-- Bottom Row Actions -->
+                <div class="flex justify-between px-1">
+                    <div class="flex flex-col items-center gap-2 cursor-pointer" onclick="dismissCall()">
+                        <div class="w-[78px] h-[78px] rounded-full bg-[#FF3B30] flex items-center justify-center shadow-lg active:opacity-70 transition-opacity">
+                            <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24" style="transform: rotate(135deg);"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                        </div>
+                        <span class="text-white text-[14px]">거절</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 cursor-pointer" onclick="answerCall()">
+                        <div class="w-[78px] h-[78px] rounded-full bg-[#34C759] flex items-center justify-center shadow-lg active:opacity-70 transition-opacity">
+                            <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                        </div>
+                        <span class="text-white text-[14px]">응답</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Answered call: black chat-like screen -->
+        <div id="answered-call-screen" class="screen" style="z-index:110; background:#000; color:#fff; display:none;">
+            <div id="answered-call-bubble" style="position:absolute; top:72px; left:18px; max-width:78%; background:#343438; border-radius:18px; padding:11px 16px; font-size:16px; line-height:1.4; opacity:0; transition:opacity .25s ease;">정우영.</div>
+
+            <!-- Choice appears 1.5 seconds after the first message -->
+            <button id="answered-call-choice" type="button" onclick="selectAnsweredCallChoice()" style="position:absolute; left:8%; right:8%; bottom:90px; width:84%; min-height:64px; padding:14px 18px; border:0; border-radius:10px; background:#fff; color:#000; font-size:20px; line-height:1.35; text-align:center; opacity:0; display:none; cursor:pointer; transition:opacity .25s ease;">
+                뭐야, 최산. 너 스케줄 끝났어?
+            </button>
+
+            <!-- User's reply appears on the right, lower than the first message -->
+            <div id="answered-call-reply" style="position:absolute; top:142px; right:18px; max-width:78%; background:#343438; border-radius:18px; padding:11px 16px; font-size:16px; line-height:1.4; opacity:0; display:none; transition:opacity .25s ease; text-align:left;">뭐야, 최산. 너 스케줄 끝났어?</div>
+            <!-- Choi San's follow-up message, on the left -->
+            <div id="answered-call-san-followup" style="position:absolute; top:202px; left:18px; max-width:78%; background:#343438; border-radius:18px; padding:11px 16px; font-size:16px; line-height:1.4; opacity:0; display:none; transition:opacity .25s ease; text-align:left;">영이 너. 또 포타 보느라 연락 안 봤지.</div>
+
+            <!-- Second choice, shown after Choi San's follow-up -->
+            <button id="answered-call-choice-2" type="button" onclick="selectAnsweredCallChoice2()" style="position:absolute; left:8%; right:8%; bottom:90px; width:84%; min-height:64px; padding:14px 18px; border:0; border-radius:10px; background:#fff; color:#000; font-size:20px; line-height:1.35; text-align:center; opacity:0; display:none; cursor:pointer; transition:opacity .25s ease;">
+                ㅇ-, 아...아니거든?!
+            </button>
+
+            <!-- Jung Wooyoung's second reply, on the right -->
+            <div id="answered-call-reply-2" style="position:absolute; top:262px; right:18px; max-width:78%; background:#343438; border-radius:18px; padding:11px 16px; font-size:16px; line-height:1.4; opacity:0; display:none; transition:opacity .25s ease; text-align:left;">ㅇ-, 아...아니거든?!</div>
+            <!-- Third choice after Wooyoung's second message -->
+            <button id="answered-call-choice-3" type="button" onclick="selectAnsweredCallChoice3()" style="position:absolute; left:8%; right:8%; bottom:90px; width:84%; min-height:64px; padding:14px 18px; border:0; border-radius:10px; background:#fff; color:#000; font-size:20px; line-height:1.35; text-align:center; opacity:0; display:none; cursor:pointer; transition:opacity .25s ease;">
+                아잇, 됐어! 그런 말 할거면 그냥 끊어!
+            </button>
+
+            <!-- Wooyoung's third reply on the right -->
+            <div id="answered-call-reply-3" style="position:absolute; top:322px; right:18px; max-width:78%; background:#343438; border-radius:18px; padding:11px 16px; font-size:16px; line-height:1.4; opacity:0; display:none; transition:opacity .25s ease; text-align:left;">아잇, 됐어! 그런 말 할거면 그냥 끊어!</div>
+            <!-- Choi San's sequential follow-up messages, on the left -->
+            <div id="answered-call-san-followup-2" style="position:absolute; top:382px; left:18px; max-width:78%; background:#343438; border-radius:18px; padding:11px 16px; font-size:16px; line-height:1.4; opacity:0; display:none; transition:opacity .25s ease; text-align:left;">하-,</div>
+            <div id="answered-call-san-followup-3" style="position:absolute; top:442px; left:18px; max-width:78%; background:#343438; border-radius:18px; padding:11px 16px; font-size:16px; line-height:1.4; opacity:0; display:none; transition:opacity .25s ease; text-align:left;">끊지말고.</div>
+            <div id="answered-call-san-followup-4" style="position:absolute; top:502px; left:18px; max-width:78%; background:#343438; border-radius:18px; padding:11px 16px; font-size:16px; line-height:1.4; opacity:0; display:none; transition:opacity .25s ease; text-align:left;">바지 내려봐.</div>
+
+            <!-- Choice after Choi San's three follow-up messages -->
+            <button id="answered-call-choice-4" type="button" onclick="selectAnsweredCallChoice4()" style="position:absolute; left:8%; right:8%; bottom:90px; width:84%; min-height:64px; padding:14px 18px; border:0; border-radius:10px; background:#fff; color:#000; font-size:20px; line-height:1.35; text-align:center; opacity:0; display:none; cursor:pointer; transition:opacity .25s ease;">
+                이 미친-!?, 뭐라는거야!!
+            </button>
+
+            <!-- Choi San's final message after the choice is selected -->
+            <div id="answered-call-san-followup-5" style="position:absolute; top:562px; left:18px; max-width:78%; background:#343438; border-radius:18px; padding:11px 16px; font-size:16px; line-height:1.4; opacity:0; display:none; transition:opacity .25s ease; text-align:left;">그리고 영통으로 돌려.</div>
+            <div id="answered-call-san-followup-6" style="position:absolute; top:622px; left:18px; max-width:78%; background:#343438; border-radius:18px; padding:11px 16px; font-size:16px; line-height:1.4; color:#bdbdc2; opacity:0; display:none; transition:opacity .25s ease; text-align:left;">(포타로 돌아가주세요)</div>
+
+            <div class="home-indicator-container" onclick="closeAnsweredCall()" title="홈으로 돌아가기">
+                <div class="home-indicator" style="background:#777;"></div>
             </div>
         </div>
 
@@ -1334,6 +1598,21 @@
             const keypadInputEl = document.getElementById('keypad-input');
             const keypadBackspaceEl = document.getElementById('keypad-backspace');
 
+            // --- State Tracking for Easter Egg ---
+            let hasViewedPost1 = false;
+            let hasViewedPost2 = false;
+            let hasViewedMessage = false;
+            let hasTriggeredCall = false;
+
+            function checkCallTrigger() {
+                if (hasViewedPost1 && hasViewedPost2 && hasViewedMessage && !hasTriggeredCall) {
+                    hasTriggeredCall = true;
+                    setTimeout(() => {
+                        document.getElementById('incoming-call-screen').classList.add('active');
+                    }, 1500);
+                }
+            }
+
             const iconMap = {
                 'Phone': '📞', 'Safari': '🧭', 'Messages': '💬', 'Music': '🎵',
                 'FaceTime': '📹', '캘린더': '📅', '사진': '🖼️', 'Mail': '✉️',
@@ -1352,6 +1631,13 @@
                     homeScreen.style.transform = 'scale(0.95)';
                     homeScreen.style.opacity = '0.5';
                     setTimeout(() => { phoneAppEl.classList.add('active'); }, 50);
+                    return;
+                }
+
+                if (appName === 'Messages') {
+                    homeScreen.style.transform = 'scale(0.95)';
+                    homeScreen.style.opacity = '0.5';
+                    setTimeout(() => { document.getElementById('messages-app').classList.add('active'); }, 50);
                     return;
                 }
 
@@ -1377,6 +1663,8 @@
             function closeApp() {
                 appView.classList.remove('active');
                 phoneAppEl.classList.remove('active');
+                document.getElementById('messages-app').classList.remove('active');
+                document.getElementById('message-detail-screen').classList.remove('active');
                 document.getElementById('postype-app').classList.remove('active');
                 document.getElementById('postype-detail-screen').classList.remove('active');
                 document.getElementById('postype-detail-screen-2').classList.remove('active');
@@ -1387,6 +1675,8 @@
             // Postype Detail
             function openPostDetail() {
                 document.getElementById('postype-detail-screen').classList.add('active');
+                hasViewedPost1 = true;
+                checkCallTrigger();
             }
 
             function closePostDetail() {
@@ -1395,10 +1685,199 @@
 
             function openPostDetail2() {
                 document.getElementById('postype-detail-screen-2').classList.add('active');
+                hasViewedPost2 = true;
+                checkCallTrigger();
             }
 
             function closePostDetail2() {
                 document.getElementById('postype-detail-screen-2').classList.remove('active');
+            }
+
+            // Message Detail
+            function openMessageDetail() {
+                document.getElementById('message-detail-screen').classList.add('active');
+                hasViewedMessage = true;
+                checkCallTrigger();
+            }
+
+            function closeMessageDetail() {
+                document.getElementById('message-detail-screen').classList.remove('active');
+            }
+            
+            // Call Screen Logic
+            let answerBubbleTimer = null;
+            let answerChoiceTimer = null;
+            let answerReplyTimer = null;
+            let sanFollowupTimer = null;
+            let secondChoiceTimer = null;
+            let secondReplyTimer = null;
+            let sanFollowup2Timer = null;
+            let sanFollowup3Timer = null;
+            let sanFollowup4Timer = null;
+            let fourthChoiceTimer = null;
+            let fifthMessageTimer = null;
+
+            function answerCall() {
+                const screen = document.getElementById('answered-call-screen');
+                const bubble = document.getElementById('answered-call-bubble');
+                const choice = document.getElementById('answered-call-choice');
+                const reply = document.getElementById('answered-call-reply');
+                const sanFollowup = document.getElementById('answered-call-san-followup');
+                const choice2 = document.getElementById('answered-call-choice-2');
+                const reply2 = document.getElementById('answered-call-reply-2');
+                const choice3 = document.getElementById('answered-call-choice-3');
+                const reply3 = document.getElementById('answered-call-reply-3');
+                const sanFollowup2 = document.getElementById('answered-call-san-followup-2');
+                const sanFollowup3 = document.getElementById('answered-call-san-followup-3');
+                const sanFollowup4 = document.getElementById('answered-call-san-followup-4');
+                const choice4 = document.getElementById('answered-call-choice-4');
+                const sanFollowup5 = document.getElementById('answered-call-san-followup-5');
+                const sanFollowup6 = document.getElementById('answered-call-san-followup-6');
+
+                [answerBubbleTimer, answerChoiceTimer, answerReplyTimer, sanFollowupTimer, secondChoiceTimer, secondReplyTimer, sanFollowup2Timer, sanFollowup3Timer, sanFollowup4Timer, fourthChoiceTimer, fifthMessageTimer].forEach(clearTimeout);
+
+                bubble.style.opacity = '0';
+                choice.style.opacity = '0'; choice.style.display = 'none';
+                reply.style.opacity = '0'; reply.style.display = 'none';
+                sanFollowup.style.opacity = '0'; sanFollowup.style.display = 'none';
+                choice2.style.opacity = '0'; choice2.style.display = 'none';
+                reply2.style.opacity = '0'; reply2.style.display = 'none';
+                choice3.style.opacity = '0'; choice3.style.display = 'none';
+                reply3.style.opacity = '0'; reply3.style.display = 'none';
+                [sanFollowup2, sanFollowup3, sanFollowup4, sanFollowup5, sanFollowup6, choice4].forEach(el => {
+                    el.style.opacity = '0';
+                    el.style.display = 'none';
+                });
+
+                screen.style.display = 'flex';
+                document.getElementById('incoming-call-screen').classList.remove('active');
+
+                answerBubbleTimer = setTimeout(() => {
+                    bubble.style.opacity = '1';
+                    answerChoiceTimer = setTimeout(() => {
+                        choice.style.display = 'block';
+                        requestAnimationFrame(() => { choice.style.opacity = '1'; });
+                    }, 1500);
+                }, 1500);
+            }
+
+            function selectAnsweredCallChoice() {
+                const choice = document.getElementById('answered-call-choice');
+                const reply = document.getElementById('answered-call-reply');
+                choice.style.opacity = '0';
+
+                setTimeout(() => {
+                    choice.style.display = 'none';
+                    answerReplyTimer = setTimeout(() => {
+                        reply.style.display = 'block';
+                        requestAnimationFrame(() => { reply.style.opacity = '1'; });
+
+                        // Choi San sends a follow-up 1.5 seconds after Wooyoung's message.
+                        sanFollowupTimer = setTimeout(() => {
+                            const sanFollowup = document.getElementById('answered-call-san-followup');
+                            sanFollowup.style.display = 'block';
+                            requestAnimationFrame(() => { sanFollowup.style.opacity = '1'; });
+
+                            // Show the next choice 1.5 seconds after Choi San's message.
+                            secondChoiceTimer = setTimeout(() => {
+                                const choice2 = document.getElementById('answered-call-choice-2');
+                                choice2.style.display = 'block';
+                                requestAnimationFrame(() => { choice2.style.opacity = '1'; });
+                            }, 1500);
+                        }, 1500);
+                    }, 1500);
+                }, 250);
+            }
+
+            function selectAnsweredCallChoice2() {
+                const choice2 = document.getElementById('answered-call-choice-2');
+                const reply2 = document.getElementById('answered-call-reply-2');
+                choice2.style.opacity = '0';
+
+                setTimeout(() => {
+                    choice2.style.display = 'none';
+                    reply2.style.display = 'block';
+                    requestAnimationFrame(() => { reply2.style.opacity = '1'; });
+
+                    // Show the next choice 1.5 seconds after Wooyoung's message appears.
+                    secondReplyTimer = setTimeout(() => {
+                        const choice3 = document.getElementById('answered-call-choice-3');
+                        choice3.style.display = 'block';
+                        requestAnimationFrame(() => { choice3.style.opacity = '1'; });
+                    }, 1500);
+                }, 250);
+            }
+
+            function selectAnsweredCallChoice3() {
+                const choice3 = document.getElementById('answered-call-choice-3');
+                const reply3 = document.getElementById('answered-call-reply-3');
+                choice3.style.opacity = '0';
+
+                setTimeout(() => {
+                    choice3.style.display = 'none';
+                    reply3.style.display = 'block';
+                    requestAnimationFrame(() => { reply3.style.opacity = '1'; });
+
+                    // Choi San sends "하-," 1.5 seconds after Wooyoung's message.
+                    sanFollowup2Timer = setTimeout(() => {
+                        const message2 = document.getElementById('answered-call-san-followup-2');
+                        message2.style.display = 'block';
+                        requestAnimationFrame(() => { message2.style.opacity = '1'; });
+
+                        // Then "끊지말고." 1.5 seconds later.
+                        sanFollowup3Timer = setTimeout(() => {
+                            const message3 = document.getElementById('answered-call-san-followup-3');
+                            message3.style.display = 'block';
+                            requestAnimationFrame(() => { message3.style.opacity = '1'; });
+
+                            // Then "바지 내려봐." 1.5 seconds later.
+                            sanFollowup4Timer = setTimeout(() => {
+                                const message4 = document.getElementById('answered-call-san-followup-4');
+                                message4.style.display = 'block';
+                                requestAnimationFrame(() => { message4.style.opacity = '1'; });
+
+                                // Show the choice 1.5 seconds after the final message.
+                                fourthChoiceTimer = setTimeout(() => {
+                                    const choice4 = document.getElementById('answered-call-choice-4');
+                                    choice4.style.display = 'block';
+                                    requestAnimationFrame(() => { choice4.style.opacity = '1'; });
+                                }, 1500);
+                            }, 1500);
+                        }, 1500);
+                    }, 1500);
+                }, 250);
+            }
+
+            function selectAnsweredCallChoice4() {
+                const choice4 = document.getElementById('answered-call-choice-4');
+                const message = document.getElementById('answered-call-san-followup-5');
+                const parenthetical = document.getElementById('answered-call-san-followup-6');
+                choice4.style.opacity = '0';
+
+                setTimeout(() => {
+                    choice4.style.display = 'none';
+                    message.style.display = 'block';
+                    requestAnimationFrame(() => { message.style.opacity = '1'; });
+
+                    // Two seconds later, Choi San sends the quieter parenthetical message.
+                    fifthMessageTimer = setTimeout(() => {
+                        parenthetical.style.display = 'block';
+                        requestAnimationFrame(() => { parenthetical.style.opacity = '1'; });
+                    }, 2000);
+                }, 250);
+            }
+
+            function closeAnsweredCall() {
+                [answerBubbleTimer, answerChoiceTimer, answerReplyTimer, sanFollowupTimer, secondChoiceTimer, secondReplyTimer, sanFollowup2Timer, sanFollowup3Timer, sanFollowup4Timer, fourthChoiceTimer, fifthMessageTimer].forEach(clearTimeout);
+                ['answered-call-bubble', 'answered-call-choice', 'answered-call-reply', 'answered-call-san-followup', 'answered-call-choice-2', 'answered-call-reply-2', 'answered-call-choice-3', 'answered-call-reply-3', 'answered-call-san-followup-2', 'answered-call-san-followup-3', 'answered-call-san-followup-4', 'answered-call-choice-4', 'answered-call-san-followup-5', 'answered-call-san-followup-6'].forEach(id => {
+                    const element = document.getElementById(id);
+                    element.style.opacity = '0';
+                    if (element.tagName === 'BUTTON' || id.includes('choice')) element.style.display = 'none';
+                });
+                document.getElementById('answered-call-screen').style.display = 'none';
+            }
+            function dismissCall() {
+                document.getElementById('incoming-call-screen').classList.remove('active');
             }
 
             // Custom Phone App 
